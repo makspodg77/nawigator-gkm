@@ -2,7 +2,6 @@ import { Elysia, t } from "elysia";
 import { csaCoordinateRouting } from "../main/csa";
 import { preprocess } from "../main/preprocess";
 import { ValidationError } from "../utils/errors";
-import { populateRoutes } from "../main/populateRoutes";
 
 export const transitRouter = new Elysia()
   .state("preprocessedData", null as any)

@@ -1,6 +1,5 @@
 import { Elysia } from "elysia";
 
-// Klasy błędów
 export class ApiError extends Error {
   constructor(public statusCode: number, message: string) {
     super(message);
@@ -19,7 +18,6 @@ export class ValidationError extends ApiError {
   }
 }
 
-// Plugin
 export const errorPlugin = new Elysia()
   .error({
     API_ERROR: ApiError,
@@ -28,10 +26,8 @@ export const errorPlugin = new Elysia()
   })
   .onError(({ code, error, set }) => {
     console.log("piwio");
-    // 1. Zawsze loguj błąd w konsoli (to pomoże Ci debugować)
     console.error(`[${code}]:`, error);
 
-    // 2. Bezpieczne wyciąganie statusu
     let httpStatus: number = 500;
 
     if (error instanceof ApiError) {
@@ -44,8 +40,6 @@ export const errorPlugin = new Elysia()
 
     set.status = httpStatus;
 
-    // 3. Bezpieczne wyciąganie wiadomości (Rozwiązanie Twojego błędu TS)
-    // Sprawdzamy czy error to obiekt i czy ma message, w przeciwnym razie fallback
     const errorMessage =
       error && typeof error === "object" && "message" in error
         ? String(error.message)
