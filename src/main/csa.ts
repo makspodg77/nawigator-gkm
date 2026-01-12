@@ -17,161 +17,45 @@ let cachedSortedConnections: Connection[] = [];
 const MAX_WALK_TIME = 12; // minutes (maximum acceptable walking time)
 const MAX_WALK_DISTANCE = MAX_WALK_TIME * WALK_SPEED; // 960 meters
 
-async function findNearbyStops(
-  lat: number,
-  lon: number,
-  stopInfo: Map<number, Stop>
-) {
-  const nearbyStops = [];
-  for (const [stopId, info] of stopInfo) {
-    const distance = getPreciseDistance(
-      { latitude: lon, longitude: lat },
-      { latitude: info.lon, longitude: info.lat }
-    );
-    if (distance <= MAX_WALK_DISTANCE) {
-      nearbyStops.push({ stopId, info, distance });
-    }
-  }
-
-  if (nearbyStops.length === 0) return [];
-
-  const BATCH_SIZE = 25;
-  const allDistances: IStop[] = [];
-
-  for (let i = 0; i < nearbyStops.length; i += BATCH_SIZE) {
-    const batch = nearbyStops.slice(i, i + BATCH_SIZE);
-    const destinations = batch
-      .map((s) => `${s.info.lon},${s.info.lat}`)
-      .join("|");
-
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${lon},${lat}&destinations=${destinations}&mode=walking&units=metric&key=${process.env.GOOGLE_KEY}`
-    );
-
-    const data = await res.json();
-
-    batch.forEach((stop, idx) => {
-      const element = data.rows[0].elements[idx];
-
-      if (element.status === "OK") {
-        allDistances.push({
-          stopId: stop.stopId,
-          distance: element.distance.value,
-          walkTime: Math.ceil(element.distance.value / WALK_SPEED),
-          stopInfo: stop.info,
-        });
-      } else {
-        allDistances.push({
-          stopId: stop.stopId,
-          distance: stop.distance,
-          walkTime: Math.ceil(stop.distance / WALK_SPEED),
-          stopInfo: stop.info,
-        });
-      }
-    });
-  }
-
-  return allDistances.sort((a, b) => a.distance - b.distance);
-}
-function applyTransfers(
-  stopId: number,
-  arrivalTime: number,
-  routeId: number | null,
-  transfers: number,
+export function initializeRouter(
   connections: Map<number, Connections>,
-  reachable: { [stopId: number]: number },
-  journeyMap: { [stopId: number]: Journey },
-  allJourneys: { [stopId: number]: Journey[] },
-  journeyIdCounter: { val: number },
-  originData: { stopId: number; walkTime: number; distance: number }
+  stopsByGroup: Map<number, number[]>
 ) {
-  const stopConn = connections.get(stopId);
-  if (!stopConn || !stopConn.transfers) return;
-
-  const MAX_TRANSFER_DEPTH = 10; // Reduced from 100 to prevent infinite walk loops
-  const queue = [
-    {
-      stopId,
-      arrivalTime,
-      routeId,
-      transfers,
-      depth: 0,
-      parentJourneyId: journeyMap[stopId]?.id,
-    },
-  ]; // Added parentJourneyId tracking
-  const processed = new Set();
-
-  while (queue.length > 0) {
-    const next = queue.shift();
-    if (!next) break;
-
-    const {
-      stopId: currentStop,
-      arrivalTime: currentTime,
-      transfers: currentTransfers,
-      depth,
-      parentJourneyId, // Use the specific parent ID from the queue
-    } = next;
-
-    if (depth >= MAX_TRANSFER_DEPTH) continue;
-
-    const key = `${currentStop}-${currentTime}`;
-    if (processed.has(key)) continue;
-    processed.add(key);
-
-    const currentConn = connections.get(currentStop);
-    if (!currentConn || !currentConn.transfers) continue;
-
-    for (const transfer of currentConn.transfers) {
-      const newTransfers =
-        currentTransfers + (transfer.type === "inter-group" ? 1 : 0);
-      const transferArrival = currentTime + transfer.transferTime;
-      const currentReach = reachable[transfer.to];
-
-      // Optimization: Only process if we improve arrival time
-      if (currentReach === undefined || transferArrival < currentReach) {
-        reachable[transfer.to] = transferArrival;
-
-        const journeyEntry: Journey = {
-          id: journeyIdCounter.val++,
-          arrival: transferArrival,
-          prevStop: currentStop,
-          prevConn: {
-            type: "transfer",
-            transferTime: transfer.transferTime,
-            groupName: transfer.groupName,
-            transferType: transfer.type,
-          },
-          prevJourneyId: parentJourneyId, // Link to the specific parent from queue
-          routeId: null, // FIX: Transfers reset the routeId (you are walking, not on a bus)
-          transfers: newTransfers,
-          departureTime: journeyMap[currentStop]?.departureTime || 0,
-          originStopId: originData.stopId,
-          originWalkTime: originData.walkTime,
-          originWalkDistance: originData.distance, // ADDED: Track origin distance
-        };
-
-        journeyMap[transfer.to] = journeyEntry;
-
-        if (!allJourneys[transfer.to]) {
-          allJourneys[transfer.to] = [];
-        }
-        allJourneys[transfer.to].push(journeyEntry);
-
-        if (depth + 1 < MAX_TRANSFER_DEPTH) {
-          queue.push({
-            stopId: transfer.to,
-            arrivalTime: transferArrival,
-            routeId: null, // Walking resets route
-            transfers: newTransfers,
-            depth: depth + 1,
-            parentJourneyId: journeyEntry.id, // Pass this new ID as parent for next depth
-          });
+  if (cachedSortedConnections.length > 0) return;
+  let cachedStopToGroupMap: StopToGroupMap = new Map();
+  for (const [groupId, stopIds] of stopsByGroup) {
+    for (const stopId of stopIds) {
+      cachedStopToGroupMap.set(stopId, groupId);
+    }
+  }
+  for (const [fromStopId, conn] of connections) {
+    for (const ride of conn.rides) {
+      if (!ride.departures) continue;
+      const groupId = cachedStopToGroupMap.get(fromStopId);
+      if (groupId) {
+        for (const depTime of ride.departures) {
+          cachedSortedConnections.push(
+            new Connection(
+              fromStopId,
+              ride.to,
+              depTime.time,
+              depTime.key,
+              groupId,
+              depTime.time + ride.travelTime,
+              ride.routeId,
+              ride.lineName,
+              ride.lineType,
+              ride.lineColor,
+              ride.signature
+            )
+          );
         }
       }
     }
   }
+  cachedSortedConnections.sort((a, b) => a.departure - b.departure);
 }
+
 /**
  * Main CSA function - All-day coordinate-based routing
  */
@@ -467,54 +351,119 @@ function scanWindow(
   }
   return foundRoutes;
 }
-export function initializeRouter(
+
+function applyTransfers(
+  stopId: number,
+  arrivalTime: number,
+  routeId: number | null,
+  transfers: number,
   connections: Map<number, Connections>,
-  stopsByGroup: Map<number, number[]>
+  reachable: { [stopId: number]: number },
+  journeyMap: { [stopId: number]: Journey },
+  allJourneys: { [stopId: number]: Journey[] },
+  journeyIdCounter: { val: number },
+  originData: { stopId: number; walkTime: number; distance: number }
 ) {
-  if (cachedSortedConnections.length > 0) return;
-  let cachedStopToGroupMap: StopToGroupMap = new Map();
-  for (const [groupId, stopIds] of stopsByGroup) {
-    for (const stopId of stopIds) {
-      cachedStopToGroupMap.set(stopId, groupId);
-    }
-  }
-  for (const [fromStopId, conn] of connections) {
-    for (const ride of conn.rides) {
-      if (!ride.departures) continue;
-      const groupId = cachedStopToGroupMap.get(fromStopId);
-      if (groupId) {
-        for (const depTime of ride.departures) {
-          cachedSortedConnections.push(
-            new Connection(
-              fromStopId,
-              ride.to,
-              depTime.time,
-              depTime.key,
-              groupId,
-              depTime.time + ride.travelTime,
-              ride.routeId,
-              ride.lineName,
-              ride.lineType,
-              ride.lineColor,
-              ride.signature
-            )
-          );
+  const stopConn = connections.get(stopId);
+  if (!stopConn || !stopConn.transfers) return;
+
+  const MAX_TRANSFER_DEPTH = 10; // Reduced from 100 to prevent infinite walk loops
+  const queue = [
+    {
+      stopId,
+      arrivalTime,
+      routeId,
+      transfers,
+      depth: 0,
+      parentJourneyId: journeyMap[stopId]?.id,
+    },
+  ]; // Added parentJourneyId tracking
+  const processed = new Set();
+
+  while (queue.length > 0) {
+    const next = queue.shift();
+    if (!next) break;
+
+    const {
+      stopId: currentStop,
+      arrivalTime: currentTime,
+      transfers: currentTransfers,
+      depth,
+      parentJourneyId, // Use the specific parent ID from the queue
+    } = next;
+
+    if (depth >= MAX_TRANSFER_DEPTH) continue;
+
+    const key = `${currentStop}-${currentTime}`;
+    if (processed.has(key)) continue;
+    processed.add(key);
+
+    const currentConn = connections.get(currentStop);
+    if (!currentConn || !currentConn.transfers) continue;
+
+    for (const transfer of currentConn.transfers) {
+      const newTransfers =
+        currentTransfers + (transfer.type === "inter-group" ? 1 : 0);
+      const transferArrival = currentTime + transfer.transferTime;
+      const currentReach = reachable[transfer.to];
+
+      // Optimization: Only process if we improve arrival time
+      if (currentReach === undefined || transferArrival < currentReach) {
+        reachable[transfer.to] = transferArrival;
+
+        const journeyEntry: Journey = {
+          id: journeyIdCounter.val++,
+          arrival: transferArrival,
+          prevStop: currentStop,
+          prevConn: {
+            type: "transfer",
+            transferTime: transfer.transferTime,
+            groupName: transfer.groupName,
+            transferType: transfer.type,
+          },
+          prevJourneyId: parentJourneyId, // Link to the specific parent from queue
+          routeId: null, // FIX: Transfers reset the routeId (you are walking, not on a bus)
+          transfers: newTransfers,
+          departureTime: journeyMap[currentStop]?.departureTime || 0,
+          originStopId: originData.stopId,
+          originWalkTime: originData.walkTime,
+          originWalkDistance: originData.distance, // ADDED: Track origin distance
+        };
+
+        journeyMap[transfer.to] = journeyEntry;
+
+        if (!allJourneys[transfer.to]) {
+          allJourneys[transfer.to] = [];
+        }
+        allJourneys[transfer.to].push(journeyEntry);
+
+        if (depth + 1 < MAX_TRANSFER_DEPTH) {
+          queue.push({
+            stopId: transfer.to,
+            arrivalTime: transferArrival,
+            routeId: null, // Walking resets route
+            transfers: newTransfers,
+            depth: depth + 1,
+            parentJourneyId: journeyEntry.id, // Pass this new ID as parent for next depth
+          });
         }
       }
     }
   }
-  cachedSortedConnections.sort((a, b) => a.departure - b.departure);
 }
 
+/**
+ * Create the journey
+ */
 function reconstructRouteFromJourney(
   destJourney: Journey,
   allJourneys: { [stopId: number]: Journey[] },
   destStopMap: Map<number, IStop>
 ) {
-  const pathSegments: (ITransitSegment | ITransferSegment)[] = []; // Unified array for all path segments
+  const pathSegments: ITransitSegment[] = []; // Unified array for all path segments
   let currentJourney = destJourney;
   const path = [];
-  // 1. Trace the path backwards from destination to origin
+  // backtrack the journey from end to start
   while (currentJourney !== null) {
     path.unshift({
       stop: currentJourney.prevStop,
@@ -539,7 +488,6 @@ function reconstructRouteFromJourney(
     }
   }
 
-  // 2. Build unified pathSegments with transfers AND transits in order
   let i = 1;
   while (i < path.length) {
     const conn = path[i]?.conn;
@@ -548,7 +496,6 @@ function reconstructRouteFromJourney(
       continue;
     }
 
-    // Handle transit legs (merge consecutive segments on same route)
     const legStart = i;
     const routeId = path[i].routeId;
 
@@ -593,11 +540,9 @@ function reconstructRouteFromJourney(
     i = legEnd + 1;
   }
 
-  // 3. Validation - need at least one transit segment
   const transitSegments = pathSegments.filter((s) => s.type === "transit");
   if (transitSegments.length === 0) return null;
 
-  // Get final destination info
   const finalStopId = transitSegments[transitSegments.length - 1].to;
   const destInfo = destStopMap.get(finalStopId);
   if (!destInfo) return null;
@@ -610,7 +555,7 @@ function reconstructRouteFromJourney(
     key: transitSegments.map((leg) => leg.key).join("-"),
     finalWalk: destInfo.walkTime,
     finalWalkDistance: destInfo.distance,
-    departure: transitSegments[0].departure - destJourney.originWalkTime,
+    departure: transitSegments[0].departure - (destJourney.originWalkTime ?? 0),
     arrival: transitSegments[transitSegments.length - 1].arrival,
     actualDeparture: transitSegments[0].departure,
     transfers: transitSegments.length - 1,
@@ -630,6 +575,49 @@ const SCORING_CONFIG = {
   WALK_PENALTY_HARD: 1.5,
 };
 
+/**
+ * Filter out objectively bad routes
+ */
+function filterAndDeduplicateRoutes(routes: IRoute[]) {
+  if (!routes.length) return [];
+  const scoredRoutes = routes.map((route) => ({
+    route,
+    score: calculateRouteScore(route),
+  }));
+
+  scoredRoutes.sort((a, b) => a.score - b.score);
+  const bestScore = scoredRoutes[0].score;
+
+  // filter out bad scores
+  const filteredRoutes = scoredRoutes.filter(
+    (route) => route.score <= bestScore * 1.5
+  );
+
+  // deduplication algorithm
+  const seenKeys = new Set();
+  const seenDepartures = new Set();
+  const seenArrivals = new Set();
+  const seenLegs = new Set();
+  const result = [];
+
+  for (const { route } of filteredRoutes) {
+    if (seenKeys.has(route.key)) continue;
+    if (seenDepartures.has(route.actualDeparture)) continue;
+    if (seenArrivals.has(route.arrival)) continue;
+    if (route.pathSegments.some((p) => seenLegs.has(p.key))) continue;
+    route.pathSegments.map((p) => p.key).forEach((key) => seenLegs.add(key));
+    seenArrivals.add(route.arrival);
+    seenKeys.add(route.key);
+    seenDepartures.add(route.actualDeparture);
+    result.push(route);
+  }
+
+  return result;
+}
+
+/**
+ * Calculate how good a route is
+ */
 function calculateRouteScore(route: IRoute): number {
   if (!route.pathSegments || route.pathSegments.length === 0) {
     return (
@@ -690,72 +678,29 @@ function calculateRouteScore(route: IRoute): number {
   return Math.round(score);
 }
 
-function filterAndDeduplicateRoutes(routes: IRoute[]) {
-  if (!routes.length) return [];
-  const scoredRoutes = routes.map((route) => ({
-    route,
-    score: calculateRouteScore(route),
-  }));
-
-  scoredRoutes.sort((a, b) => a.score - b.score);
-  const bestScore = scoredRoutes[0].score;
-
-  const filteredRoutes = scoredRoutes.filter(
-    (route) => route.score <= bestScore * 1.5
-  );
-
-  const seenKeys = new Set();
-  const seenDepartures = new Set();
-  const seenArrivals = new Set();
-  const seenFeet = new Set();
-  const result = [];
-
-  for (const { route } of filteredRoutes) {
-    if (seenKeys.has(route.key)) continue;
-    if (seenDepartures.has(route.actualDeparture)) continue;
-    if (seenArrivals.has(route.arrival)) continue;
-    if (route.pathSegments.some((p) => seenFeet.has(p.key))) continue;
-    route.pathSegments.map((p) => p.key).forEach((key) => seenFeet.add(key));
-    seenArrivals.add(route.arrival);
-    seenKeys.add(route.key);
-    seenDepartures.add(route.actualDeparture);
-    result.push(route);
-  }
-
-  return result;
-}
-
 /**
  * Build journey segments for display
  */
 function buildJourneyDetails(route: IRoute, stopInfo: Map<number, Stop>) {
   const segments = [];
 
-  // Find the actual first stop we need to be at (might be different from originStop if there are transfers)
-  const firstPathStop =
-    route.pathSegments && route.pathSegments.length > 0
-      ? route.pathSegments[0].type === "transfer"
-        ? route.pathSegments[0].from
-        : route.pathSegments[0].from
-      : route.originStop;
-
-  // Initial walk from origin coordinates to first stop
+  // initial walk segment
   if (route.initialWalk > 0) {
     segments.push({
       type: "walk",
       from: "origin",
-      to: firstPathStop,
+      to: route.originStop,
       fromName: "Origin coordinates",
-      toName: getStopName(firstPathStop, stopInfo),
+      toName: getStopName(route.originStop, stopInfo),
       duration: route.initialWalk,
       distance: route.initialWalkDistance,
     });
   }
 
-  // Build segments from the complete path (transfers + transits in order)
+  // transfer / transit segments
   for (const pathSeg of route.pathSegments || []) {
     if (pathSeg.type === "transfer") {
-      // Inter-group transfers are walks between different stop groups
+      // transfer to a diffrent stop group
       if (pathSeg.transferType === "inter-group") {
         const fromInfo = stopInfo.get(pathSeg.from);
         const toInfo = stopInfo.get(pathSeg.to);
@@ -777,7 +722,7 @@ function buildJourneyDetails(route: IRoute, stopInfo: Map<number, Stop>) {
           distance: distance,
         });
       } else {
-        // Intra-group transfers (same stop group, e.g., platform changes)
+        // transfer to a diffrent stop in the same stop group
         segments.push({
           type: "transfer",
           from: pathSeg.from,
@@ -808,7 +753,7 @@ function buildJourneyDetails(route: IRoute, stopInfo: Map<number, Stop>) {
     }
   }
 
-  // Final walk from last stop to destination
+  // final walk segment
   if (route.finalWalk > 0) {
     segments.push({
       type: "walk",
@@ -858,6 +803,63 @@ function binarySearchStartIndex(
   }
 
   return result;
+}
+
+async function findNearbyStops(
+  lat: number,
+  lon: number,
+  stopInfo: Map<number, Stop>
+) {
+  const nearbyStops = [];
+  for (const [stopId, info] of stopInfo) {
+    const distance = getPreciseDistance(
+      { latitude: lon, longitude: lat },
+      { latitude: info.lon, longitude: info.lat }
+    );
+    if (distance <= MAX_WALK_DISTANCE) {
+      nearbyStops.push({ stopId, info, distance });
+    }
+  }
+
+  if (nearbyStops.length === 0) return [];
+
+  const BATCH_SIZE = 25;
+  const allDistances: IStop[] = [];
+
+  for (let i = 0; i < nearbyStops.length; i += BATCH_SIZE) {
+    const batch = nearbyStops.slice(i, i + BATCH_SIZE);
+    const destinations = batch
+      .map((s) => `${s.info.lon},${s.info.lat}`)
+      .join("|");
+
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${lon},${lat}&destinations=${destinations}&mode=walking&units=metric&key=${process.env.GOOGLE_KEY}`
+    );
+
+    const data = await res.json();
+
+    batch.forEach((stop, idx) => {
+      const element = data.rows[0].elements[idx];
+
+      if (element.status === "OK") {
+        allDistances.push({
+          stopId: stop.stopId,
+          distance: element.distance.value,
+          walkTime: Math.ceil(element.distance.value / WALK_SPEED),
+          stopInfo: stop.info,
+        });
+      } else {
+        allDistances.push({
+          stopId: stop.stopId,
+          distance: stop.distance,
+          walkTime: Math.ceil(stop.distance / WALK_SPEED),
+          stopInfo: stop.info,
+        });
+      }
+    });
+  }
+
+  return allDistances.sort((a, b) => a.distance - b.distance);
 }
 
 export default {
