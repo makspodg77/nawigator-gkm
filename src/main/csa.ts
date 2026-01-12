@@ -1,22 +1,22 @@
 import { getPreciseDistance } from "geolib";
-
-const WALK_SPEED = 80; // meters per minute
 import {
   Connection,
   IRoute,
   IStop,
-  ITransferSegment,
   ITransitSegment,
   Journey,
   StopToGroupMap,
 } from "../models/models";
-import { Connections, Route, Stop } from "../models/preprocessModels";
-const TRANSFER_PENALTY = 25; // minutes penalty for each transfer (increased)
-const WALK_PENALTY_MULTIPLIER = 5; // strongly penalize walking (2x priority vs transfers)
+import { Connections, Stop } from "../models/preprocessModels";
+
 let cachedSortedConnections: Connection[] = [];
-const MAX_WALK_TIME = 12; // minutes (maximum acceptable walking time)
+const WALK_SPEED = 80; // meters per minute
+const MAX_WALK_TIME = 12; // minutes
 const MAX_WALK_DISTANCE = MAX_WALK_TIME * WALK_SPEED; // 960 meters
 
+/**
+ * Initialize the connections array for csa algorithm
+ */
 export function initializeRouter(
   connections: Map<number, Connections>,
   stopsByGroup: Map<number, number[]>
@@ -68,8 +68,11 @@ export async function csaCoordinateRouting(
   stopInfo: Map<number, Stop>,
   stopsByGroup: Map<number, number[]>
 ) {
+  // look for closest stop to given coords
   const originStops = await findNearbyStops(lat1, lon1, stopInfo);
   const destStops = await findNearbyStops(lat2, lon2, stopInfo);
+
+  // safety check if any stops were found
   if (originStops.length === 0 || destStops.length === 0) {
     return {
       success: false,
@@ -81,17 +84,21 @@ export async function csaCoordinateRouting(
     };
   }
 
+  // call the method spiral 😶😶😑
   const routes: IRoute[] = connectionScanAllDay(
     originStops,
     destStops,
     connections,
     stopsByGroup
   );
+
+  // format routes 🤣😂😂😁
   const formattedRoutes = routes.map((route, idx) => {
     const segments = buildJourneyDetails(route, stopInfo);
     const transitTime = route.arrival - route.actualDeparture;
     const totalWalk = route.initialWalk + route.finalWalk;
 
+    // return routes in a pretty formatted way 😍😎😎
     const weightedScore = calculateRouteScore(route);
     return {
       id: idx + 1,
