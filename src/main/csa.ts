@@ -539,7 +539,7 @@ function reconstructRouteFromJourney(
     }
 
     const legStart = i;
-    const routeId = path[i].routeId;
+    const routeId = path[i].routeId ?? 0;
 
     let legEnd = i;
     while (legEnd + 1 < path.length) {
@@ -576,6 +576,7 @@ function reconstructRouteFromJourney(
         lineType: firstConn.lineType,
         lineColor: firstConn.lineColor,
         signature: firstConn.signature,
+        duration: 0,
       });
     }
 
@@ -744,38 +745,25 @@ function buildJourneyDetails(route: IRoute, stopInfo: Map<number, Stop>) {
   for (const pathSeg of route.pathSegments || []) {
     if (pathSeg.type === "transfer") {
       // transfer to a diffrent stop group
-      if (pathSeg.transferType === "inter-group") {
-        const fromInfo = stopInfo.get(pathSeg.from);
-        const toInfo = stopInfo.get(pathSeg.to);
-        const distance =
-          fromInfo && toInfo
-            ? getPreciseDistance(
-                { latitude: fromInfo.lat, longitude: fromInfo.lon },
-                { latitude: toInfo.lat, longitude: toInfo.lon }
-              )
-            : pathSeg.duration * WALK_SPEED;
+      const fromInfo = stopInfo.get(pathSeg.from);
+      const toInfo = stopInfo.get(pathSeg.to);
+      const distance =
+        fromInfo && toInfo
+          ? getPreciseDistance(
+              { latitude: fromInfo.lat, longitude: fromInfo.lon },
+              { latitude: toInfo.lat, longitude: toInfo.lon }
+            )
+          : pathSeg.duration * WALK_SPEED;
 
-        segments.push({
-          type: "walk",
-          from: pathSeg.from,
-          to: pathSeg.to,
-          fromName: getStopName(pathSeg.from, stopInfo),
-          toName: getStopName(pathSeg.to, stopInfo),
-          duration: pathSeg.duration,
-          distance: distance,
-        });
-      } else {
-        // transfer to a diffrent stop in the same stop group
-        segments.push({
-          type: "transfer",
-          from: pathSeg.from,
-          to: pathSeg.to,
-          fromName: getStopName(pathSeg.from, stopInfo),
-          toName: getStopName(pathSeg.to, stopInfo),
-          duration: pathSeg.duration,
-          transferType: pathSeg.transferType,
-        });
-      }
+      segments.push({
+        type: "walk",
+        from: pathSeg.from,
+        to: pathSeg.to,
+        fromName: getStopName(pathSeg.from, stopInfo),
+        toName: getStopName(pathSeg.to, stopInfo),
+        duration: pathSeg.duration,
+        distance: distance,
+      });
     } else if (pathSeg.type === "transit") {
       segments.push({
         type: "transit",
