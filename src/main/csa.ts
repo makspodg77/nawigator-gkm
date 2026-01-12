@@ -64,6 +64,8 @@ export async function csaCoordinateRouting(
   lon1: number,
   lat2: number,
   lon2: number,
+  startTime: number,
+  endTime: number,
   connections: Map<number, Connections>,
   stopInfo: Map<number, Stop>,
   stopsByGroup: Map<number, number[]>
@@ -89,7 +91,9 @@ export async function csaCoordinateRouting(
     originStops,
     destStops,
     connections,
-    stopsByGroup
+    stopsByGroup,
+    startTime,
+    endTime
   );
 
   // format routes 🤣😂😂😁
@@ -172,11 +176,11 @@ function connectionScanAllDay(
   originStops: IStop[],
   destinationStops: IStop[],
   connections: Map<number, Connections>,
-  stopsByGroup: Map<number, number[]>
+  stopsByGroup: Map<number, number[]>,
+  startTime: number = 972,
+  endTime: number = 1100
 ) {
   const maxTransfers = 5;
-  const startTime = 972;
-  const endTime = 1100;
 
   // initialize the connections array if it is not populated exist yet
   if (cachedSortedConnections.length === 0) {

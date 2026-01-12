@@ -18,7 +18,7 @@ import {
 
 // 🎀 Constants
 const CONFIG = {
-  WALK_LIMIT_METERS: 2000,
+  WALK_LIMIT_METERS: 3000,
   // Clarified: 80 meters per minute (~4.8 km/h). Result of division is MINUTES.
   WALK_SPEED_METERS_PER_MIN: 80,
   TRANSFER_MINUTES: 2,
