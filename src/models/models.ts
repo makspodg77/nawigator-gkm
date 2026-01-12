@@ -12,7 +12,7 @@ export class Connection {
     public lineColor: string,
     public signature: string,
     public transfers: number = 0,
-    public type: string = "transfer"
+    public type: string = "transit"
   ) {}
 }
 
@@ -43,6 +43,7 @@ export interface Journey {
   departureTime?: number;
   originStopId?: number;
   originWalkTime?: number;
+  originWalkDistance: number;
 }
 
 export interface IPrevConn {
@@ -50,4 +51,41 @@ export interface IPrevConn {
   transferTime: number;
   groupName: string;
   transferType: string; // "intra-group" or "inter-group"
+}
+
+interface ISegment {
+  type: string;
+  from: number;
+  to: number;
+  duration: number;
+}
+
+export interface ITransitSegment extends ISegment {
+  departure: number;
+  arrival: number;
+  routeId: number;
+  key: string;
+  line: string;
+  lineType: string;
+  lineColor: string;
+  signature: string;
+}
+
+export interface ITransferSegment extends ISegment {
+  transferType: string;
+}
+
+export interface IRoute {
+  originStop: number;
+  destStop: number;
+  initialWalk: number;
+  initialWalkDistance: number;
+  key: string;
+  finalWalk: number;
+  finalWalkDistance: number;
+  departure: number;
+  actualDeparture: number;
+  arrival: number;
+  transfers: number;
+  pathSegments: ITransitSegment[];
 }

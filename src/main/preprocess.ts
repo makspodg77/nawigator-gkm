@@ -196,11 +196,10 @@ export const preprocess = async () => {
 
     const baseTimes = timetableByDep.get(depRoute.id) || [];
 
-    const activeStops = (fullRoutesByRoute.get(depRoute.id) || []).filter(
+    const activeStops = (fullRoutesByRoute.get(depRoute.routeId) || []).filter(
       (fr) =>
         !fr.isOptional || additionalByDep.get(depRoute.id)?.has(fr.stopNumber)
     );
-
     let currentOffset = 0;
     const timeline = activeStops.map((stop, index) => {
       if (index > 0) {
@@ -216,12 +215,14 @@ export const preprocess = async () => {
       if (distTime < 0) continue;
 
       const ridesAtStop = connections.get(from.stopId)?.rides;
-      console.log(ridesAtStop);
       if (ridesAtStop) {
         ridesAtStop.push({
           from: from.stopId,
           to: to.stopId,
           travelTime: distTime,
+          routeId: depRoute.id,
+          lineType: lineTypeMap.get(line.lineTypeId)?.nameSingular,
+          signature: depRoute.signature,
           departures: baseTimes.map((t) => ({
             time: t + startOffset,
             key: `${line.name}-${t}-${depRoute.id}`,
@@ -251,7 +252,7 @@ export const preprocess = async () => {
       }
     });
 
-    spatial.getNearby(stop.lat, stop.lon).forEach((neighbor) => {
+    spatial.getNearby(stop.lon, stop.lat).forEach((neighbor) => {
       if (neighbor.stopId === stop.id) return;
 
       if (stopInfo.get(neighbor.stopId)?.groupId === stop.groupId) return;
