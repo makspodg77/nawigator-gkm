@@ -35,7 +35,8 @@ export const transitRouter = new Elysia()
         store.preprocessedData.stopsByGroup,
         store.preprocessedData.depRoutes,
         store.preprocessedData.fullRoutesByRoute,
-        store.preprocessedData.additionalByDep
+        store.preprocessedData.additionalByDep,
+        store.preprocessedData.routeGeometryByDep
       );
 
       return result;

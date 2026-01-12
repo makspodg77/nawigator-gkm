@@ -11,6 +11,7 @@ import {
   Connections,
   DepartureRoute,
   FullRoute,
+  IRouteGeometry,
   Stop,
 } from "../models/preprocessModels";
 import { populateRoutes } from "./populateRoutes";
@@ -77,7 +78,8 @@ export async function csaCoordinateRouting(
   stopsByGroup: Map<number, number[]>,
   depRoutes: DepartureRoute[],
   fullRoutesByRoute: Map<number, FullRoute[]>,
-  additionalByDep: Map<number, Set<number>>
+  additionalByDep: Map<number, Set<number>>,
+  routeGeometryByDep: Map<number, IRouteGeometry[]>
 ) {
   // look for closest stop to given coords
   const originStops = await findNearbyStops(lat1, lon1, stopInfo);
@@ -114,7 +116,8 @@ export async function csaCoordinateRouting(
         stopsByGroup,
         depRoutes,
         fullRoutesByRoute,
-        additionalByDep
+        additionalByDep,
+        routeGeometryByDep
       );
 
       const transitTime = route.arrival - route.actualDeparture;
@@ -755,7 +758,8 @@ async function buildJourneyDetails(
   stopsByGroup: Map<number, number[]>,
   depRoutes: DepartureRoute[],
   fullRoutesByRoute: Map<number, FullRoute[]>,
-  additionalByDep: Map<number, Set<number>>
+  additionalByDep: Map<number, Set<number>>,
+  routeGeometryByDep: Map<number, IRouteGeometry[]>
 ) {
   const segments = [];
 
@@ -817,7 +821,8 @@ async function buildJourneyDetails(
           stopInfo,
           depRoutes,
           fullRoutesByRoute,
-          additionalByDep
+          additionalByDep,
+          routeGeometryByDep
         )
       );
     }

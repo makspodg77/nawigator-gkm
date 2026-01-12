@@ -112,6 +112,14 @@ export class FullRoute {
   }
 }
 
+export interface IRouteGeometry {
+  id: number;
+  lat: number;
+  lon: number;
+  departureRouteId: number;
+  stopNumber: number;
+}
+
 export class Timetable {
   public id: number;
   public routeId: number;

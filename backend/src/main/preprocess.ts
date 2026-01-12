@@ -1,6 +1,6 @@
 import { getPreciseDistance } from "geolib";
 import { executeQuery } from "../utils/sqlHelper";
-import { initializeRouter } from "../main/csa";
+import { initializeRouter } from "./csa";
 import RBush from "rbush";
 import {
   Stop,
@@ -14,6 +14,7 @@ import {
   TreeItem,
   Connections,
   RideConnection,
+  IRouteGeometry,
 } from "../models/preprocessModels";
 
 const CONFIG = {
@@ -63,6 +64,7 @@ export const preprocess = async () => {
     rawFullRoutes,
     rawTimetables,
     rawAdditionalStops,
+    rawRouteGeometry,
   ] = await Promise.all([
     executeQuery<any>(
       `SELECT s.id, s.alias, sg.name as "groupName", s.stop_group_id as "groupId", split_part(s.map, ',', 1) as lat, split_part(s.map, ',', 2) as lon FROM stop s JOIN stop_group sg ON sg.id = s.stop_group_id`
@@ -87,6 +89,9 @@ export const preprocess = async () => {
     ),
     executeQuery<any>(
       'SELECT route_id as "routeId", stop_number as "stopNumber" FROM additional_stop'
+    ),
+    executeQuery<any>(
+      "SELECT id, lat, lon, departure_route_id, stop_number from map_route"
     ),
   ]);
 
@@ -116,6 +121,13 @@ export const preprocess = async () => {
     ...dr,
     id: Number(dr.id),
     routeId: Number(dr.routeId),
+  }));
+  const routeGeometry: IRouteGeometry[] = rawRouteGeometry.map((mg) => ({
+    id: mg.id,
+    lat: Number(mg.lat),
+    lon: Number(mg.lon),
+    departureRouteId: mg.departureRouteId,
+    stopNumber: mg.stopNumber,
   }));
 
   const fullRoutes: FullRoute[] = rawFullRoutes.map((fr) => ({
@@ -166,6 +178,10 @@ export const preprocess = async () => {
     return acc;
   }, new Map<number, Set<number>>());
 
+  const routeGeometryByDep = routeGeometry.reduce((acc, mg) => {
+    acc.set(mg.departureRouteId, [...(acc.get(mg.departureRouteId) || []), mg]);
+    return acc;
+  }, new Map<number, IRouteGeometry[]>());
   const fullRoutesByRoute = fullRoutes.reduce((acc, fr) => {
     acc.set(fr.routeId, [...(acc.get(fr.routeId) || []), fr]);
     return acc;
@@ -276,5 +292,6 @@ export const preprocess = async () => {
     fullRoutesByRoute,
     depRoutes,
     additionalByDep,
+    routeGeometryByDep,
   };
 };

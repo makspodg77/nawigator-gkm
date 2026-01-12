@@ -1,6 +1,6 @@
 import postgres from "postgres";
-import config from "../utils/config";
-import { ApiError } from "../utils/errors";
+import config from "./config";
+import { ApiError } from "./errors";
 
 const sql = postgres({
   ...config.database,
