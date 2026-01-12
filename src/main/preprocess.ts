@@ -57,7 +57,6 @@ class SpatialIndex {
 }
 
 export const preprocess = async () => {
-  // 1. Fetch everything (SQL remains unchanged)
   const [
     rawStops,
     rawLines,
@@ -69,7 +68,7 @@ export const preprocess = async () => {
     rawAdditionalStops,
   ] = await Promise.all([
     executeQuery<any>(
-      `SELECT s.id, sg.name as "groupName", s.stop_group_id as "groupId", split_part(s.map, ',', 1) as lat, split_part(s.map, ',', 2) as lon FROM stop s JOIN stop_group sg ON sg.id = s.stop_group_id`
+      `SELECT s.id, s.alias, sg.name as "groupName", s.stop_group_id as "groupId", split_part(s.map, ',', 1) as lat, split_part(s.map, ',', 2) as lon FROM stop s JOIN stop_group sg ON sg.id = s.stop_group_id`
     ),
     executeQuery<any>(
       'SELECT id, name, line_type_id as "lineTypeId" FROM line'
@@ -94,7 +93,6 @@ export const preprocess = async () => {
     ),
   ]);
 
-  // 2. Mapping to clean types
   const stops: Stop[] = rawStops.map((s) => ({
     ...s,
     id: Number(s.id),
@@ -123,7 +121,6 @@ export const preprocess = async () => {
     routeId: Number(dr.routeId),
   }));
 
-  // Note: Assuming travelTime in DB is DELTA (time to get to this stop from previous)
   const fullRoutes: FullRoute[] = rawFullRoutes.map((fr) => ({
     ...fr,
     id: Number(fr.id),
@@ -134,7 +131,6 @@ export const preprocess = async () => {
     isOptional: Boolean(fr.isOptional),
   }));
 
-  // Helper: Convert "HH:MM" to minutes from midnight
   const parseTime = (t: string) => {
     const [h, m] = t.split(":").map(Number);
     return h * 60 + m;
@@ -151,12 +147,10 @@ export const preprocess = async () => {
     stopNumber: Number(as.stopNumber),
   }));
 
-  // Maps
   const lineMap = new Map(lines.map((l) => [l.id, l]));
   const lineTypeMap = new Map(lineTypes.map((lt) => [lt.id, lt]));
   const routeMap = new Map(routes.map((r) => [r.id, r]));
 
-  // Grouping
   const timetableByDep = timetables.reduce((acc, t) => {
     let times = acc.get(t.routeId);
 
@@ -236,7 +230,6 @@ export const preprocess = async () => {
     }
   }
 
-  // --- 6. Spatial (Walking & Transfrs) ---
   const spatial = new SpatialIndex();
   stops.forEach(spatial.add);
 
@@ -277,5 +270,14 @@ export const preprocess = async () => {
   }
 
   initializeRouter(connections, stopsByGroup);
-  return { connections, stopInfo, stopsByGroup, lineMap, lineTypeMap };
+  return {
+    connections,
+    stopInfo,
+    stopsByGroup,
+    lineMap,
+    lineTypeMap,
+    fullRoutesByRoute,
+    depRoutes,
+    additionalByDep,
+  };
 };

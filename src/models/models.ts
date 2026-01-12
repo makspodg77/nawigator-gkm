@@ -71,6 +71,16 @@ export interface ITransitSegment extends ISegment {
   signature: string;
 }
 
+export interface IPreFinalSegment extends ITransitSegment {
+  fromName: string;
+  toName: string;
+}
+
+export interface IFinalSegment extends ITransitSegment {
+  stopsInBetween: { departureTime: string; name: string }[];
+  coords: { lat: number; lon: number }[];
+}
+
 export interface ITransferSegment extends ISegment {
   transferType: string;
 }

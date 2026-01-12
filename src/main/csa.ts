@@ -7,7 +7,13 @@ import {
   Journey,
   StopToGroupMap,
 } from "../models/models";
-import { Connections, Stop } from "../models/preprocessModels";
+import {
+  Connections,
+  DepartureRoute,
+  FullRoute,
+  Stop,
+} from "../models/preprocessModels";
+import { populateRoutes } from "./populateRoutes";
 
 let cachedSortedConnections: Connection[] = [];
 const WALK_SPEED = 80; // meters per minute
@@ -68,7 +74,10 @@ export async function csaCoordinateRouting(
   endTime: number,
   connections: Map<number, Connections>,
   stopInfo: Map<number, Stop>,
-  stopsByGroup: Map<number, number[]>
+  stopsByGroup: Map<number, number[]>,
+  depRoutes: DepartureRoute[],
+  fullRoutesByRoute: Map<number, FullRoute[]>,
+  additionalByDep: Map<number, Set<number>>
 ) {
   // look for closest stop to given coords
   const originStops = await findNearbyStops(lat1, lon1, stopInfo);
@@ -97,44 +106,55 @@ export async function csaCoordinateRouting(
   );
 
   // format routes 🤣😂😂😁
-  const formattedRoutes = routes.map((route, idx) => {
-    const segments = buildJourneyDetails(route, stopInfo);
-    const transitTime = route.arrival - route.actualDeparture;
-    const totalWalk = route.initialWalk + route.finalWalk;
+  const formattedRoutes = await Promise.all(
+    routes.map(async (route, idx) => {
+      const segments = await buildJourneyDetails(
+        route,
+        stopInfo,
+        stopsByGroup,
+        depRoutes,
+        fullRoutesByRoute,
+        additionalByDep
+      );
 
-    // return routes in a pretty formatted way 😍😎😎
-    const weightedScore = calculateRouteScore(route);
-    return {
-      id: idx + 1,
-      departure: formatTime(route.actualDeparture - route.initialWalk),
-      arrival: formatTime(route.arrival + route.finalWalk),
-      departureMinutes: route.actualDeparture - route.initialWalk,
-      arrivalMinutes: route.arrival + route.finalWalk,
-      key: route.key,
-      duration:
-        route.arrival +
-        route.finalWalk -
-        (route.actualDeparture - route.initialWalk),
-      transfers: route.transfers,
-      weightedScore,
-      segments,
-      summary: {
-        totalWalkTime: totalWalk,
-        totalTransitTime: transitTime,
-        legs: segments.filter((s) => s.type === "transit").length,
-        initialWalk:
-          route.initialWalk > 0
-            ? `${route.initialWalk}min (${Math.round(
-                route.initialWalkDistance
-              )}m)`
-            : "None",
-        finalWalk:
-          route.finalWalk > 0
-            ? `${route.finalWalk}min (${Math.round(route.finalWalkDistance)}m)`
-            : "None",
-      },
-    };
-  });
+      const transitTime = route.arrival - route.actualDeparture;
+      const totalWalk = route.initialWalk + route.finalWalk;
+      const weightedScore = calculateRouteScore(route);
+
+      return {
+        id: idx + 1,
+        departure: formatTime(route.actualDeparture - route.initialWalk),
+        arrival: formatTime(route.arrival + route.finalWalk),
+        departureMinutes: route.actualDeparture - route.initialWalk,
+        arrivalMinutes: route.arrival + route.finalWalk,
+        key: route.key,
+        duration:
+          route.arrival +
+          route.finalWalk -
+          (route.actualDeparture - route.initialWalk),
+        transfers: route.transfers,
+        weightedScore,
+        segments,
+        summary: {
+          totalWalkTime: totalWalk,
+          totalTransitTime: transitTime,
+          legs: segments.filter((s) => s && s.type === "transit").length,
+          initialWalk:
+            route.initialWalk > 0
+              ? `${route.initialWalk}min (${Math.round(
+                  route.initialWalkDistance
+                )}m)`
+              : "None",
+          finalWalk:
+            route.finalWalk > 0
+              ? `${route.finalWalk}min (${Math.round(
+                  route.finalWalkDistance
+                )}m)`
+              : "None",
+        },
+      };
+    })
+  );
 
   return {
     success: true,
@@ -729,7 +749,14 @@ function calculateRouteScore(route: IRoute): number {
 /**
  * Build journey segments for display
  */
-function buildJourneyDetails(route: IRoute, stopInfo: Map<number, Stop>) {
+async function buildJourneyDetails(
+  route: IRoute,
+  stopInfo: Map<number, Stop>,
+  stopsByGroup: Map<number, number[]>,
+  depRoutes: DepartureRoute[],
+  fullRoutesByRoute: Map<number, FullRoute[]>,
+  additionalByDep: Map<number, Set<number>>
+) {
   const segments = [];
 
   // initial walk segment
@@ -769,22 +796,30 @@ function buildJourneyDetails(route: IRoute, stopInfo: Map<number, Stop>) {
         distance: distance,
       });
     } else if (pathSeg.type === "transit") {
-      segments.push({
-        type: "transit",
-        from: pathSeg.from,
-        to: pathSeg.to,
-        fromName: getStopName(pathSeg.from, stopInfo),
-        toName: getStopName(pathSeg.to, stopInfo),
-        departure: pathSeg.departure,
-        arrival: pathSeg.arrival,
-        duration: pathSeg.arrival - pathSeg.departure,
-        line: pathSeg.line,
-        key: pathSeg.key,
-        routeId: pathSeg.routeId,
-        signature: pathSeg.signature,
-        lineColor: pathSeg.lineColor,
-        lineType: pathSeg.lineType,
-      });
+      segments.push(
+        await populateRoutes(
+          {
+            type: "transit",
+            from: pathSeg.from,
+            to: pathSeg.to,
+            fromName: getStopName(pathSeg.from, stopInfo),
+            toName: getStopName(pathSeg.to, stopInfo),
+            departure: pathSeg.departure,
+            arrival: pathSeg.arrival,
+            duration: pathSeg.arrival - pathSeg.departure,
+            line: pathSeg.line,
+            key: pathSeg.key,
+            routeId: pathSeg.routeId,
+            signature: pathSeg.signature,
+            lineColor: pathSeg.lineColor,
+            lineType: pathSeg.lineType,
+          },
+          stopInfo,
+          depRoutes,
+          fullRoutesByRoute,
+          additionalByDep
+        )
+      );
     }
   }
 
@@ -807,12 +842,12 @@ function buildJourneyDetails(route: IRoute, stopInfo: Map<number, Stop>) {
 /**
  * Helper functions
  */
-function getStopName(stopId: number, stopInfo: Map<number, Stop>) {
+export function getStopName(stopId: number, stopInfo: Map<number, Stop>) {
   const info = stopInfo.get(stopId);
   return info?.alias || info?.groupName || `Stop ${stopId}`;
 }
 
-function formatTime(minutes: number) {
+export function formatTime(minutes: number) {
   const h = Math.floor(minutes / 60) % 24;
   const m = minutes % 60;
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
