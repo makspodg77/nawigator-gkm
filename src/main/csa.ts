@@ -171,28 +171,36 @@ function connectionScanAllDay(
   const startTime = 972;
   const endTime = 1100;
 
+  // initialize the connections array if it is not populated exist yet
   if (cachedSortedConnections.length === 0) {
     initializeRouter(connections, stopsByGroup);
   }
 
   const fullSchedule = cachedSortedConnections;
   let globalStartIndex = binarySearchStartIndex(fullSchedule, startTime);
-  const SCAN_WINDOW = 10;
-  const allRoutes = [];
 
+  // look for best connections in 10 minutes windows
+  const SCAN_WINDOW = 10;
+  const allRoutes: IRoute[] = [];
+
+  // sort origin stops by walk time
   const sortedOrigins = [...originStops].sort(
     (a, b) => a.walkTime - b.walkTime
   );
+
+  // look for best connection from every origin stop in every window each
   for (const origin of sortedOrigins) {
     for (let time = startTime; time < endTime; time += SCAN_WINDOW) {
       const windowStart = time;
 
+      // fast lookup to skip as many impossible connections as possible
       let windowStartIndex = binarySearchStartIndex(
         fullSchedule,
         windowStart,
         globalStartIndex
       );
 
+      // main csa function
       const windowRoutes = scanWindow(
         origin,
         destinationStops,
@@ -203,12 +211,16 @@ function connectionScanAllDay(
         windowStartIndex
       );
 
-      allRoutes.push(...windowRoutes);
+      allRoutes.push(...(windowRoutes as IRoute[]));
     }
   }
+
   return filterAndDeduplicateRoutes(allRoutes);
 }
 
+/**
+ * Look for the best connections in given time window
+ */
 function scanWindow(
   origin: IStop,
   destinationStops: IStop[],
@@ -220,6 +232,7 @@ function scanWindow(
 ) {
   const foundRoutes = [];
 
+  // initializing maps
   const reachable: { [stopId: number]: number } = {};
   const journeyMap: { [stopId: number]: Journey } = {};
   const allJourneys: { [stopId: number]: Journey[] } = {};
@@ -227,7 +240,10 @@ function scanWindow(
 
   const originTime = windowStart + origin.walkTime;
 
+  // set the start of the route
   reachable[origin.stopId] = originTime;
+
+  // initialize the journey
   const originJourney: Journey = {
     id: journeyIdCounter++,
     arrival: originTime,
@@ -242,12 +258,12 @@ function scanWindow(
     originWalkDistance: origin.distance,
   };
 
+  // add it to maps
   journeyMap[origin.stopId] = originJourney;
-
   allJourneys[origin.stopId] = [originJourney];
-
   const counterObj = { val: journeyIdCounter };
 
+  // apply transfers from the origin stop
   applyTransfers(
     origin.stopId,
     originTime,
@@ -266,28 +282,33 @@ function scanWindow(
   );
   journeyIdCounter = counterObj.val;
 
+  // main csa loop
   for (let i = startIndex; i < allConnections.length; i++) {
-    const conn = allConnections[i];
+    const conn = allConnections[i]; // every possible connection
 
     if (conn.departure > windowStart + 240) break; // 4 hours max
 
     const fromReachTime = reachable[conn.fromStop];
 
+    // check if reachable at this point in the journey
     if (fromReachTime === undefined || fromReachTime > conn.departure) continue;
 
     const fromJourney = journeyMap[conn.fromStop];
     if (!fromJourney) continue;
 
+    // check if we changed a vehicle if yes increment transfers count
     const isTransfer =
       fromJourney.routeId !== null && fromJourney.routeId !== conn.routeId;
     const newTransfers = isTransfer
       ? fromJourney.transfers + 1
       : fromJourney.transfers;
 
+    // go next if we hit the limit of transfers
     if (newTransfers > maxTransfers) continue;
 
     const currentReach = reachable[conn.toStop];
 
+    // create journey object
     const newJourney = {
       id: journeyIdCounter++,
       arrival: conn.arrival,
@@ -302,16 +323,19 @@ function scanWindow(
       originWalkDistance: fromJourney.originWalkDistance,
     };
 
+    // only use it if it is faster than what we have now
     if (currentReach === undefined || conn.arrival < currentReach) {
       reachable[conn.toStop] = conn.arrival;
       journeyMap[conn.toStop] = newJourney;
     }
 
+    // add it to all journeys
     if (!allJourneys[conn.toStop]) {
       allJourneys[conn.toStop] = [];
     }
     allJourneys[conn.toStop].push(newJourney);
 
+    // apply transfers to other stops from this stop
     const counterRef = { val: journeyIdCounter };
     applyTransfers(
       conn.toStop,
@@ -334,9 +358,11 @@ function scanWindow(
 
   const destStopMap = new Map(destinationStops.map((d) => [d.stopId, d]));
 
+  // checking to which destination stops we are able to get
   for (const dest of destinationStops) {
     if (!reachable[dest.stopId]) continue;
 
+    // selecting only valid routes
     const journeysToStop = allJourneys[dest.stopId] || [];
     for (const journey of journeysToStop) {
       const route = reconstructRouteFromJourney(
@@ -349,9 +375,13 @@ function scanWindow(
       }
     }
   }
+
   return foundRoutes;
 }
 
+/**
+ * Apply transfers (options) for continuing the journey
+ */
 function applyTransfers(
   stopId: number,
   arrivalTime: number,
@@ -367,7 +397,7 @@ function applyTransfers(
   const stopConn = connections.get(stopId);
   if (!stopConn || !stopConn.transfers) return;
 
-  const MAX_TRANSFER_DEPTH = 10; // Reduced from 100 to prevent infinite walk loops
+  const MAX_TRANSFER_DEPTH = 10;
   const queue = [
     {
       stopId,
@@ -377,7 +407,7 @@ function applyTransfers(
       depth: 0,
       parentJourneyId: journeyMap[stopId]?.id,
     },
-  ]; // Added parentJourneyId tracking
+  ];
   const processed = new Set();
 
   while (queue.length > 0) {
@@ -389,9 +419,10 @@ function applyTransfers(
       arrivalTime: currentTime,
       transfers: currentTransfers,
       depth,
-      parentJourneyId, // Use the specific parent ID from the queue
+      parentJourneyId,
     } = next;
 
+    // safety check to avoid walking to destination
     if (depth >= MAX_TRANSFER_DEPTH) continue;
 
     const key = `${currentStop}-${currentTime}`;
@@ -401,13 +432,14 @@ function applyTransfers(
     const currentConn = connections.get(currentStop);
     if (!currentConn || !currentConn.transfers) continue;
 
+    // iterating through every transfer for this stop
     for (const transfer of currentConn.transfers) {
       const newTransfers =
         currentTransfers + (transfer.type === "inter-group" ? 1 : 0);
       const transferArrival = currentTime + transfer.transferTime;
       const currentReach = reachable[transfer.to];
 
-      // Optimization: Only process if we improve arrival time
+      // update if time is better
       if (currentReach === undefined || transferArrival < currentReach) {
         reachable[transfer.to] = transferArrival;
 
@@ -421,13 +453,13 @@ function applyTransfers(
             groupName: transfer.groupName,
             transferType: transfer.type,
           },
-          prevJourneyId: parentJourneyId, // Link to the specific parent from queue
-          routeId: null, // FIX: Transfers reset the routeId (you are walking, not on a bus)
+          prevJourneyId: parentJourneyId,
+          routeId: null,
           transfers: newTransfers,
           departureTime: journeyMap[currentStop]?.departureTime || 0,
           originStopId: originData.stopId,
           originWalkTime: originData.walkTime,
-          originWalkDistance: originData.distance, // ADDED: Track origin distance
+          originWalkDistance: originData.distance,
         };
 
         journeyMap[transfer.to] = journeyEntry;
@@ -441,10 +473,10 @@ function applyTransfers(
           queue.push({
             stopId: transfer.to,
             arrivalTime: transferArrival,
-            routeId: null, // Walking resets route
+            routeId: null,
             transfers: newTransfers,
             depth: depth + 1,
-            parentJourneyId: journeyEntry.id, // Pass this new ID as parent for next depth
+            parentJourneyId: journeyEntry.id,
           });
         }
       }
@@ -460,7 +492,7 @@ function reconstructRouteFromJourney(
   allJourneys: { [stopId: number]: Journey[] },
   destStopMap: Map<number, IStop>
 ) {
-  const pathSegments: ITransitSegment[] = []; // Unified array for all path segments
+  const pathSegments: ITransitSegment[] = [];
   let currentJourney = destJourney;
   const path = [];
   // backtrack the journey from end to start
@@ -472,8 +504,10 @@ function reconstructRouteFromJourney(
       routeId: currentJourney.routeId,
     });
 
+    // end of journey found
     if (currentJourney.prevJourneyId === null) break;
 
+    // moving to next segment
     const prevStop = currentJourney.prevStop;
     if (typeof prevStop === "number") {
       const journeysAtPrev = allJourneys[prevStop] || [];
@@ -488,6 +522,7 @@ function reconstructRouteFromJourney(
     }
   }
 
+  // creating output segments from found journey parts
   let i = 1;
   while (i < path.length) {
     const conn = path[i]?.conn;
@@ -547,6 +582,7 @@ function reconstructRouteFromJourney(
   const destInfo = destStopMap.get(finalStopId);
   if (!destInfo) return null;
 
+  // result
   return {
     originStop: destJourney.originStopId,
     destStop: finalStopId,
