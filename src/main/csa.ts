@@ -297,7 +297,7 @@ function scanWindow(
   for (let i = startIndex; i < allConnections.length; i++) {
     const conn = allConnections[i]; // every possible connection
 
-    if (conn.departure > windowStart + 240) break; // 4 hours max
+    if (conn.departure > windowStart + 300) break; // 5 hours max
 
     const fromReachTime = reachable[conn.fromStop];
 
