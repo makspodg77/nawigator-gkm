@@ -266,18 +266,13 @@ function scanWindow(
 ) {
   const foundRoutes = [];
 
-  // initializing maps
-  const reachable: { [stopId: number]: number } = {};
-  const journeyMap: { [stopId: number]: Journey } = {};
+  // CHANGE: Track multiple Pareto-optimal journeys per stop
+  const paretoJourneys: { [stopId: number]: Journey[] } = {};
   const allJourneys: { [stopId: number]: Journey[] } = {};
   let journeyIdCounter = 0;
 
   const originTime = windowStart + origin.walkTime;
 
-  // set the start of the route
-  reachable[origin.stopId] = originTime;
-
-  // initialize the journey
   const originJourney: Journey = {
     id: journeyIdCounter++,
     arrival: originTime,
@@ -292,20 +287,63 @@ function scanWindow(
     originWalkDistance: origin.distance,
   };
 
-  // add it to maps
-  journeyMap[origin.stopId] = originJourney;
+  paretoJourneys[origin.stopId] = [originJourney];
   allJourneys[origin.stopId] = [originJourney];
-  const counterObj = { val: journeyIdCounter };
 
-  // apply transfers from the origin stop
+  // Helper function to check if a journey is Pareto-dominated
+  function isParetoOptimal(
+    newJourney: Journey,
+    existingJourneys: Journey[]
+  ): boolean {
+    for (const existing of existingJourneys) {
+      // Dominated if existing is better or equal in BOTH criteria
+      if (
+        existing.arrival <= newJourney.arrival &&
+        existing.transfers <= newJourney.transfers
+      ) {
+        // And strictly better in at least one
+        if (
+          existing.arrival < newJourney.arrival ||
+          existing.transfers < newJourney.transfers
+        ) {
+          return false; // New journey is dominated
+        }
+      }
+    }
+    return true;
+  }
+
+  function addParetoJourney(stopId: number, journey: Journey) {
+    if (!paretoJourneys[stopId]) {
+      paretoJourneys[stopId] = [];
+    }
+
+    // Remove any existing journeys that are dominated by the new one
+    paretoJourneys[stopId] = paretoJourneys[stopId].filter((existing) => {
+      return !(
+        journey.arrival <= existing.arrival &&
+        journey.transfers <= existing.transfers &&
+        (journey.arrival < existing.arrival ||
+          journey.transfers < existing.transfers)
+      );
+    });
+
+    // Add new journey if it's not dominated
+    if (isParetoOptimal(journey, paretoJourneys[stopId])) {
+      paretoJourneys[stopId].push(journey);
+    }
+  }
+
+  addParetoJourney(origin.stopId, originJourney);
+
+  const counterObj = { val: journeyIdCounter };
   applyTransfers(
     origin.stopId,
     originTime,
     null,
     0,
     connections,
-    reachable,
-    journeyMap,
+    paretoJourneys, // Pass paretoJourneys instead
     allJourneys,
     counterObj,
     {
@@ -316,86 +354,71 @@ function scanWindow(
   );
   journeyIdCounter = counterObj.val;
 
-  // main csa loop
+  // Main CSA loop - check ALL Pareto-optimal journeys
   for (let i = startIndex; i < allConnections.length; i++) {
-    const conn = allConnections[i]; // every possible connection
+    const conn = allConnections[i];
+    if (conn.departure > windowStart + 300) break;
 
-    if (conn.departure > windowStart + 300) break; // 5 hours max
+    // CHANGE: Check all Pareto-optimal journeys at fromStop
+    const fromJourneys = paretoJourneys[conn.fromStop] || [];
 
-    const fromReachTime = reachable[conn.fromStop];
+    for (const fromJourney of fromJourneys) {
+      // Can we catch this connection from this journey?
+      if (fromJourney.arrival > conn.departure) continue;
 
-    // check if reachable at this point in the journey
-    if (fromReachTime === undefined || fromReachTime > conn.departure) continue;
+      const isTransfer =
+        fromJourney.routeId !== null && fromJourney.routeId !== conn.routeId;
+      const newTransfers = isTransfer
+        ? fromJourney.transfers + 1
+        : fromJourney.transfers;
 
-    const fromJourney = journeyMap[conn.fromStop];
-    if (!fromJourney) continue;
+      if (newTransfers > maxTransfers) continue;
 
-    // check if we changed a vehicle if yes increment transfers count
-    const isTransfer =
-      fromJourney.routeId !== null && fromJourney.routeId !== conn.routeId;
-    const newTransfers = isTransfer
-      ? fromJourney.transfers + 1
-      : fromJourney.transfers;
+      const newJourney = {
+        id: journeyIdCounter++,
+        arrival: conn.arrival,
+        prevStop: conn.fromStop,
+        prevConn: conn,
+        prevJourneyId: fromJourney.id,
+        routeId: conn.routeId,
+        transfers: newTransfers,
+        departureTime: fromJourney.departureTime,
+        originStopId: fromJourney.originStopId,
+        originWalkTime: fromJourney.originWalkTime,
+        originWalkDistance: fromJourney.originWalkDistance,
+      };
 
-    // go next if we hit the limit of transfers
-    if (newTransfers > maxTransfers) continue;
+      // Add if Pareto-optimal
+      addParetoJourney(conn.toStop, newJourney);
 
-    const currentReach = reachable[conn.toStop];
-
-    // create journey object
-    const newJourney = {
-      id: journeyIdCounter++,
-      arrival: conn.arrival,
-      prevStop: conn.fromStop,
-      prevConn: conn,
-      prevJourneyId: fromJourney.id,
-      routeId: conn.routeId,
-      transfers: newTransfers,
-      departureTime: fromJourney.departureTime,
-      originStopId: fromJourney.originStopId,
-      originWalkTime: fromJourney.originWalkTime,
-      originWalkDistance: fromJourney.originWalkDistance,
-    };
-
-    // only use it if it is faster than what we have now
-    if (currentReach === undefined || conn.arrival < currentReach) {
-      reachable[conn.toStop] = conn.arrival;
-      journeyMap[conn.toStop] = newJourney;
-    }
-
-    // add it to all journeys
-    if (!allJourneys[conn.toStop]) {
-      allJourneys[conn.toStop] = [];
-    }
-    allJourneys[conn.toStop].push(newJourney);
-
-    // apply transfers to other stops from this stop
-    const counterRef = { val: journeyIdCounter };
-    applyTransfers(
-      conn.toStop,
-      conn.arrival,
-      conn.routeId,
-      newTransfers,
-      connections,
-      reachable,
-      journeyMap,
-      allJourneys,
-      counterRef,
-      {
-        stopId: fromJourney.originStopId ?? 0,
-        walkTime: fromJourney.originWalkTime ?? 0,
-        distance: fromJourney.originWalkDistance,
+      if (!allJourneys[conn.toStop]) {
+        allJourneys[conn.toStop] = [];
       }
-    );
-    journeyIdCounter = counterRef.val;
-  }
+      allJourneys[conn.toStop].push(newJourney);
 
+      const counterRef = { val: journeyIdCounter };
+      applyTransfers(
+        conn.toStop,
+        conn.arrival,
+        conn.routeId,
+        newTransfers,
+        connections,
+        paretoJourneys,
+        allJourneys,
+        counterRef,
+        {
+          stopId: fromJourney.originStopId ?? 0,
+          walkTime: fromJourney.originWalkTime ?? 0,
+          distance: fromJourney.originWalkDistance,
+        }
+      );
+      journeyIdCounter = counterRef.val;
+    }
+  }
   const destStopMap = new Map(destinationStops.map((d) => [d.stopId, d]));
 
   // checking to which destination stops we are able to get
   for (const dest of destinationStops) {
-    if (!reachable[dest.stopId]) continue;
-
     // selecting only valid routes
     const journeysToStop = allJourneys[dest.stopId] || [];
     for (const journey of journeysToStop) {
@@ -422,8 +445,7 @@ function applyTransfers(
   routeId: number | null,
   transfers: number,
   connections: Map<number, Connections>,
-  reachable: { [stopId: number]: number },
-  journeyMap: { [stopId: number]: Journey },
+  paretoJourneys: { [stopId: number]: Journey[] },
   allJourneys: { [stopId: number]: Journey[] },
   journeyIdCounter: { val: number },
   originData: { stopId: number; walkTime: number; distance: number }
@@ -431,7 +453,68 @@ function applyTransfers(
   const stopConn = connections.get(stopId);
   if (!stopConn || !stopConn.transfers) return;
 
+  // Helper function to check if a journey is Pareto-dominated
+  function isParetoOptimal(
+    newJourney: Journey,
+    existingJourneys: Journey[]
+  ): boolean {
+    if (!existingJourneys || existingJourneys.length === 0) return true;
+
+    for (const existing of existingJourneys) {
+      if (
+        existing.arrival <= newJourney.arrival &&
+        existing.transfers <= newJourney.transfers
+      ) {
+        if (
+          existing.arrival < newJourney.arrival ||
+          existing.transfers < newJourney.transfers
+        ) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  function addParetoJourney(stopId: number, journey: Journey) {
+    if (!paretoJourneys[stopId]) {
+      paretoJourneys[stopId] = [];
+    }
+
+    paretoJourneys[stopId] = paretoJourneys[stopId].filter((existing) => {
+      return !(
+        journey.arrival <= existing.arrival &&
+        journey.transfers <= existing.transfers &&
+        (journey.arrival < existing.arrival ||
+          journey.transfers < existing.transfers)
+      );
+    });
+
+    if (isParetoOptimal(journey, paretoJourneys[stopId])) {
+      paretoJourneys[stopId].push(journey);
+      return true;
+    }
+    return false;
+  }
+
   const MAX_TRANSFER_DEPTH = 10;
+
+  // Find the specific journey we're transferring from
+  let baseJourney = null;
+  const journeysAtStop = paretoJourneys[stopId] || [];
+  for (const j of journeysAtStop) {
+    if (
+      j.arrival === arrivalTime &&
+      j.transfers === transfers &&
+      j.routeId === routeId
+    ) {
+      baseJourney = j;
+      break;
+    }
+  }
+
+  if (!baseJourney) return; // Can't find the journey to transfer from
+
   const queue = [
     {
       stopId,
@@ -439,10 +522,12 @@ function applyTransfers(
       routeId,
       transfers,
       depth: 0,
-      parentJourneyId: journeyMap[stopId]?.id,
+      parentJourneyId: baseJourney.id,
     },
   ];
-  const processed = new Set();
+
+  // IMPROVED: Track visited stops at each depth to prevent cycles
+  const visited = new Map<number, Set<string>>(); // depth -> set of "stopId-arrival-transfers"
 
   while (queue.length > 0) {
     const next = queue.shift();
@@ -456,54 +541,57 @@ function applyTransfers(
       parentJourneyId,
     } = next;
 
-    // safety check to avoid walking to destination
     if (depth >= MAX_TRANSFER_DEPTH) continue;
 
-    const key = `${currentStop}-${currentTime}`;
-    if (processed.has(key)) continue;
-    processed.add(key);
+    // IMPROVED: Check if we've visited this state at this depth
+    if (!visited.has(depth)) {
+      visited.set(depth, new Set());
+    }
+    const depthVisited = visited.get(depth)!;
+    const visitKey = `${currentStop}-${currentTime}-${currentTransfers}`;
+    if (depthVisited.has(visitKey)) continue;
+    depthVisited.add(visitKey);
 
     const currentConn = connections.get(currentStop);
     if (!currentConn || !currentConn.transfers) continue;
 
-    // iterating through every transfer for this stop
     for (const transfer of currentConn.transfers) {
       const newTransfers =
         currentTransfers + (transfer.type === "inter-group" ? 1 : 0);
       const transferArrival = currentTime + transfer.transferTime;
-      const currentReach = reachable[transfer.to];
 
-      // update if time is better
-      if (currentReach === undefined || transferArrival < currentReach) {
-        reachable[transfer.to] = transferArrival;
+      const journeyEntry: Journey = {
+        id: journeyIdCounter.val++,
+        arrival: transferArrival,
+        prevStop: currentStop,
+        prevConn: {
+          type: "transfer",
+          transferTime: transfer.transferTime,
+          groupName: transfer.groupName,
+          transferType: transfer.type,
+        },
+        prevJourneyId: parentJourneyId,
+        routeId: null,
+        transfers: newTransfers,
+        departureTime: originData.stopId,
+        originStopId: originData.stopId,
+        originWalkTime: originData.walkTime,
+        originWalkDistance: originData.distance,
+      };
 
-        const journeyEntry: Journey = {
-          id: journeyIdCounter.val++,
-          arrival: transferArrival,
-          prevStop: currentStop,
-          prevConn: {
-            type: "transfer",
-            transferTime: transfer.transferTime,
-            groupName: transfer.groupName,
-            transferType: transfer.type,
-          },
-          prevJourneyId: parentJourneyId,
-          routeId: null,
-          transfers: newTransfers,
-          departureTime: journeyMap[currentStop]?.departureTime || 0,
-          originStopId: originData.stopId,
-          originWalkTime: originData.walkTime,
-          originWalkDistance: originData.distance,
-        };
+      const existingJourneys = paretoJourneys[transfer.to] || [];
 
-        journeyMap[transfer.to] = journeyEntry;
+      // IMPORTANT: Only add and continue if it's actually Pareto-optimal
+      const wasAdded = addParetoJourney(transfer.to, journeyEntry);
 
+      if (wasAdded) {
         if (!allJourneys[transfer.to]) {
           allJourneys[transfer.to] = [];
         }
         allJourneys[transfer.to].push(journeyEntry);
 
-        if (depth + 1 < MAX_TRANSFER_DEPTH) {
+        // IMPROVED: Only continue if we haven't reached max depth and the transfer is meaningful
+        if (depth + 1 < MAX_TRANSFER_DEPTH && transfer.transferTime < 15) {
           queue.push({
             stopId: transfer.to,
             arrivalTime: transferArrival,
