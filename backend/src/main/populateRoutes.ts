@@ -19,6 +19,7 @@ export async function populateRoutes(
   if (!routeId) return segment;
 
   const additionalStops = additionalByDep.get(segment.routeId);
+
   const fullRoute = fullRoutesByRoute
     .get(routeId)
     ?.filter((fr) => !fr.isOptional || additionalStops?.has(fr.stopNumber));

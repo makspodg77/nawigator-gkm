@@ -84,7 +84,7 @@ export async function csaCoordinateRouting(
   // look for closest stop to given coords
   const originStops = await findNearbyStops(lat1, lon1, stopInfo);
   const destStops = await findNearbyStops(lat2, lon2, stopInfo);
-
+  console.log(destStops);
   // safety check if any stops were found
   if (originStops.length === 0 || destStops.length === 0) {
     return {
@@ -637,7 +637,7 @@ const SCORING_CONFIG = {
   WALK_RELUCTANCE: 2.5,
   WAIT_RELUCTANCE: 1.5,
 
-  TRANSFER_FIXED_PENALTY: 15,
+  TRANSFER_FIXED_PENALTY: 25,
 
   RISK_THRESHOLD_MIN: 4,
   RISK_EXPONENT_FACTOR: 30,
