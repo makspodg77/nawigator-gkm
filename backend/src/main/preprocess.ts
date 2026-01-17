@@ -18,10 +18,10 @@ import {
 } from "../models/preprocessModels";
 
 const CONFIG = {
-  WALK_LIMIT_METERS: 3000,
-  WALK_SPEED_METERS_PER_MIN: 80,
+  WALK_LIMIT_METERS: 500,
+  WALK_SPEED_METERS_PER_MIN: 50,
   TRANSFER_MINUTES: 2,
-  SPATIAL_RADIUS_KM: 2,
+  SPATIAL_RADIUS_KM: 500,
 };
 
 class SpatialIndex {
@@ -246,26 +246,52 @@ export const preprocess = async () => {
   const spatial = new SpatialIndex();
   stops.forEach(spatial.add);
 
+  // Fix the preprocess.ts transfer calculation section
+  // Replace the section that builds transfers with this:
+
   for (const stop of stops) {
+    // Handle intra-group transfers (within same stop group)
     const siblings = stopsByGroup.get(stop.groupId) || [];
     siblings.forEach((targetId) => {
       if (targetId !== stop.id) {
+        const targetStop = stopInfo.get(targetId);
+        if (!targetStop) return;
+
+        // Calculate actual distance between stops in the same group
+        const dist = getPreciseDistance(
+          { latitude: stop.lat, longitude: stop.lon },
+          { latitude: targetStop.lat, longitude: targetStop.lon }
+        );
+
+        // Calculate walking time based on actual distance
+        const walkTimeMinutes = Math.ceil(
+          dist / CONFIG.WALK_SPEED_METERS_PER_MIN
+        );
+
         connections.get(stop.id)?.transfers.push({
           to: targetId,
-          transferTime: CONFIG.TRANSFER_MINUTES,
+          groupId: stop.groupId,
+          transferTime: walkTimeMinutes,
           type: "intra-group",
-        } as any);
+          groupName: stop.groupName,
+          distance: dist,
+        });
       }
     });
 
-    spatial.getNearby(stop.lon, stop.lat).forEach((neighbor) => {
+    // Handle inter-group transfers (between different stop groups)
+    spatial.getNearby(stop.lat, stop.lon).forEach((neighbor) => {
       if (neighbor.stopId === stop.id) return;
 
-      if (stopInfo.get(neighbor.stopId)?.groupId === stop.groupId) return;
+      const neighborStop = stopInfo.get(neighbor.stopId);
+      if (!neighborStop) return;
+
+      // Skip if same group (already handled above)
+      if (neighborStop.groupId === stop.groupId) return;
 
       const dist = getPreciseDistance(
-        { lat: stop.lat, lon: stop.lon },
-        { lat: neighbor.lat, lon: neighbor.lon }
+        { latitude: stop.lat, longitude: stop.lon },
+        { latitude: neighbor.lat, longitude: neighbor.lon }
       );
 
       if (dist <= CONFIG.WALK_LIMIT_METERS) {
@@ -276,8 +302,11 @@ export const preprocess = async () => {
         connections.get(stop.id)?.transfers.push({
           to: neighbor.stopId,
           transferTime: walkTimeMinutes,
+          groupId: stop.groupId,
           type: "inter-group",
-        } as any);
+          groupName: neighborStop.groupName,
+          distance: dist,
+        });
       }
     });
   }

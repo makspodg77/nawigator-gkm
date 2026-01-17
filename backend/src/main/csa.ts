@@ -26,7 +26,7 @@ const MAX_WALK_DISTANCE = MAX_WALK_TIME * WALK_SPEED; // 960 meters
  */
 export function initializeRouter(
   connections: Map<number, Connections>,
-  stopsByGroup: Map<number, number[]>
+  stopsByGroup: Map<number, number[]>,
 ) {
   if (cachedSortedConnections.length > 0) return;
   let cachedStopToGroupMap: StopToGroupMap = new Map();
@@ -53,8 +53,8 @@ export function initializeRouter(
               ride.lineName,
               ride.lineType,
               ride.lineColor,
-              ride.signature
-            )
+              ride.signature,
+            ),
           );
         }
       }
@@ -79,7 +79,7 @@ export async function csaCoordinateRouting(
   depRoutes: DepartureRoute[],
   fullRoutesByRoute: Map<number, FullRoute[]>,
   additionalByDep: Map<number, Set<number>>,
-  routeGeometryByDep: Map<number, IRouteGeometry[]>
+  routeGeometryByDep: Map<number, IRouteGeometry[]>,
 ) {
   // look for closest stop to given coords
   const originStops = await findNearbyStops(lat1, lon1, stopInfo);
@@ -98,13 +98,13 @@ export async function csaCoordinateRouting(
   }
 
   // call the method spiral 😶😶😑
-  const routes: IRoute[] = connectionScanAllDay(
+  const routes: IRoute[] = connectionScanAllDayOptimized(
     originStops,
     destStops,
     connections,
     stopsByGroup,
     startTime,
-    endTime
+    endTime,
   );
 
   // format routes 🤣😂😂😁
@@ -117,7 +117,7 @@ export async function csaCoordinateRouting(
         depRoutes,
         fullRoutesByRoute,
         additionalByDep,
-        routeGeometryByDep
+        routeGeometryByDep,
       );
 
       const transitTime = route.arrival - route.actualDeparture;
@@ -145,18 +145,18 @@ export async function csaCoordinateRouting(
           initialWalk:
             route.initialWalk > 0
               ? `${route.initialWalk}min (${Math.round(
-                  route.initialWalkDistance
+                  route.initialWalkDistance,
                 )}m)`
               : "None",
           finalWalk:
             route.finalWalk > 0
               ? `${route.finalWalk}min (${Math.round(
-                  route.finalWalkDistance
+                  route.finalWalkDistance,
                 )}m)`
               : "None",
         },
       };
-    })
+    }),
   );
 
   return {
@@ -194,85 +194,51 @@ export async function csaCoordinateRouting(
   };
 }
 
-// Optimize connectionScanAllDay
-function connectionScanAllDay(
-  originStops: IStop[],
-  destinationStops: IStop[],
+/**
+ * Pre-compute reverse transfer index (call once during initialization)
+ */
+function buildReverseTransferIndex(
   connections: Map<number, Connections>,
-  stopsByGroup: Map<number, number[]>,
-  startTime: number = 972,
-  endTime: number = 1100
-) {
-  const maxTransfers = 5;
+): Map<number, Array<{ from: number; transfer: any }>> {
+  const transfersTo = new Map<number, Array<{ from: number; transfer: any }>>();
 
-  // initialize the connections array if it is not populated exist yet
-  if (cachedSortedConnections.length === 0) {
-    initializeRouter(connections, stopsByGroup);
-  }
-
-  const fullSchedule = cachedSortedConnections;
-  let globalStartIndex = binarySearchStartIndex(fullSchedule, startTime);
-
-  // look for best connections in 10 minutes windows
-  const SCAN_WINDOW = 10;
-  const allRoutes: IRoute[] = [];
-
-  // sort origin stops by walk time
-  const sortedOrigins = [...originStops].sort(
-    (a, b) => a.walkTime - b.walkTime
-  );
-
-  // look for best connection from every origin stop in every window each
-  for (const origin of sortedOrigins) {
-    for (let time = startTime; time < endTime; time += SCAN_WINDOW) {
-      const windowStart = time;
-
-      // fast lookup to skip as many impossible connections as possible
-      let windowStartIndex = binarySearchStartIndex(
-        fullSchedule,
-        windowStart,
-        globalStartIndex
-      );
-
-      // main csa function
-      const windowRoutes = scanWindow(
-        origin,
-        destinationStops,
-        fullSchedule,
-        connections,
-        maxTransfers,
-        windowStart,
-        windowStartIndex
-      );
-
-      allRoutes.push(...(windowRoutes as IRoute[]));
+  for (const [stopId, conn] of connections) {
+    if (!conn.transfers) continue;
+    for (const transfer of conn.transfers) {
+      if (!transfersTo.has(transfer.to)) {
+        transfersTo.set(transfer.to, []);
+      }
+      transfersTo.get(transfer.to)!.push({ from: stopId, transfer });
     }
   }
 
-  return filterAndDeduplicateRoutes(allRoutes);
+  return transfersTo;
 }
 
 /**
- * Look for the best connections in given time window
+ * Optimized scanWindow - Look for the best connections in given time window
  */
-function scanWindow(
+function scanWindowOptimized(
   origin: IStop,
   destinationStops: IStop[],
   allConnections: Connection[],
   connections: Map<number, Connections>,
   maxTransfers: number,
   windowStart: number,
-  startIndex: number
+  startIndex: number,
+  transfersToIndex: Map<number, Array<{ from: number; transfer: any }>>, // Pre-built index
 ) {
   const foundRoutes = [];
 
-  // CHANGE: Track multiple Pareto-optimal journeys per stop
-  const paretoJourneys: { [stopId: number]: Journey[] } = {};
-  const allJourneys: { [stopId: number]: Journey[] } = {};
+  // Use Maps instead of plain objects for better performance
+  const paretoJourneys = new Map<number, Journey[]>();
+  const allJourneys = new Map<number, Journey[]>();
   let journeyIdCounter = 0;
 
+  const MAX_JOURNEYS_PER_STOP = 15; // Prevent journey explosion
   const originTime = windowStart + origin.walkTime;
 
+  // Initialize origin journey
   const originJourney: Journey = {
     id: journeyIdCounter++,
     arrival: originTime,
@@ -287,83 +253,138 @@ function scanWindow(
     originWalkDistance: origin.distance,
   };
 
-  paretoJourneys[origin.stopId] = [originJourney];
-  allJourneys[origin.stopId] = [originJourney];
+  paretoJourneys.set(origin.stopId, [originJourney]);
+  allJourneys.set(origin.stopId, [originJourney]);
 
-  // Helper function to check if a journey is Pareto-dominated
+  // Helper: Check if journey is Pareto-optimal
   function isParetoOptimal(
     newJourney: Journey,
-    existingJourneys: Journey[]
+    existingJourneys: Journey[],
   ): boolean {
     for (const existing of existingJourneys) {
-      // Dominated if existing is better or equal in BOTH criteria
       if (
         existing.arrival <= newJourney.arrival &&
-        existing.transfers <= newJourney.transfers
+        existing.transfers <= newJourney.transfers &&
+        (existing.arrival < newJourney.arrival ||
+          existing.transfers < newJourney.transfers)
       ) {
-        // And strictly better in at least one
-        if (
-          existing.arrival < newJourney.arrival ||
-          existing.transfers < newJourney.transfers
-        ) {
-          return false; // New journey is dominated
-        }
+        return false;
       }
     }
     return true;
   }
 
-  function addParetoJourney(stopId: number, journey: Journey) {
-    if (!paretoJourneys[stopId]) {
-      paretoJourneys[stopId] = [];
+  // Helper: Add journey to Pareto set with limit
+  function addParetoJourney(stopId: number, journey: Journey): boolean {
+    let existing = paretoJourneys.get(stopId) || [];
+
+    // Remove dominated journeys
+    existing = existing.filter(
+      (e) =>
+        !(
+          journey.arrival <= e.arrival &&
+          journey.transfers <= e.transfers &&
+          (journey.arrival < e.arrival || journey.transfers < e.transfers)
+        ),
+    );
+
+    // Check if new journey is Pareto-optimal
+    if (!isParetoOptimal(journey, existing)) {
+      return false;
     }
 
-    // Remove any existing journeys that are dominated by the new one
-    paretoJourneys[stopId] = paretoJourneys[stopId].filter((existing) => {
-      return !(
-        journey.arrival <= existing.arrival &&
-        journey.transfers <= existing.transfers &&
-        (journey.arrival < existing.arrival ||
-          journey.transfers < existing.transfers)
+    existing.push(journey);
+
+    // Limit journey explosion - keep best journeys
+    if (existing.length > MAX_JOURNEYS_PER_STOP) {
+      existing.sort(
+        (a, b) =>
+          a.arrival +
+          a.transfers * 15 +
+          a.originWalkDistance -
+          (b.arrival + b.transfers * 15 + b.originWalkDistance),
       );
-    });
-
-    // Add new journey if it's not dominated
-    if (isParetoOptimal(journey, paretoJourneys[stopId])) {
-      paretoJourneys[stopId].push(journey);
+      existing = existing.slice(0, MAX_JOURNEYS_PER_STOP);
     }
+
+    paretoJourneys.set(stopId, existing);
+    return true;
   }
 
-  addParetoJourney(origin.stopId, originJourney);
+  // Apply initial transfers from origin
 
-  const counterObj = { val: journeyIdCounter };
-  applyTransfers(
-    origin.stopId,
-    originTime,
-    null,
-    0,
-    connections,
-    paretoJourneys, // Pass paretoJourneys instead
-    allJourneys,
-    counterObj,
-    {
-      stopId: origin.stopId,
-      walkTime: origin.walkTime,
-      distance: origin.distance,
-    }
-  );
-  journeyIdCounter = counterObj.val;
+  // Early termination tracking
+  const destStopSet = new Set(destinationStops.map((d) => d.stopId));
+  let bestDestArrival = Infinity;
 
-  // Main CSA loop - check ALL Pareto-optimal journeys
+  // Main CSA loop - optimized
   for (let i = startIndex; i < allConnections.length; i++) {
     const conn = allConnections[i];
+
+    // Time window check
     if (conn.departure > windowStart + 300) break;
 
-    // CHANGE: Check all Pareto-optimal journeys at fromStop
-    const fromJourneys = paretoJourneys[conn.fromStop] || [];
+    // Early termination if we have good routes
+    if (bestDestArrival !== Infinity && conn.departure > bestDestArrival + 60) {
+      break;
+    }
+
+    // ========== OPTIMIZED WALKING TRANSFERS ==========
+    // Use pre-built index instead of iterating all stops
+    const incomingTransfers = transfersToIndex.get(conn.fromStop) || [];
+
+    for (const { from: sourceStopId, transfer } of incomingTransfers) {
+      const journeys = paretoJourneys.get(sourceStopId);
+      if (!journeys) continue;
+
+      for (const sourceJourney of journeys) {
+        const arrivalAfterWalk = sourceJourney.arrival + transfer.transferTime;
+
+        // Can we walk there in time to catch the bus?
+        if (arrivalAfterWalk > conn.departure) continue;
+
+        const isTransfer =
+          sourceJourney.routeId !== null &&
+          sourceJourney.routeId !== conn.routeId;
+        const newTransfers =
+          sourceJourney.transfers +
+          (transfer.type === "inter-group" ? 1 : 0) +
+          (isTransfer ? 1 : 0);
+
+        if (newTransfers > maxTransfers) continue;
+
+        const walkJourney: Journey = {
+          id: journeyIdCounter++,
+          arrival: arrivalAfterWalk,
+          prevStop: sourceStopId,
+          prevConn: {
+            type: "transfer",
+            transferTime: transfer.transferTime,
+            groupName: transfer.groupName,
+            transferType: transfer.type,
+          },
+          prevJourneyId: sourceJourney.id,
+          routeId: null,
+          transfers:
+            sourceJourney.transfers + (transfer.type === "inter-group" ? 1 : 0),
+          departureTime: sourceJourney.departureTime,
+          originStopId: sourceJourney.originStopId,
+          originWalkTime: sourceJourney.originWalkTime,
+          originWalkDistance: sourceJourney.originWalkDistance,
+        };
+
+        if (addParetoJourney(conn.fromStop, walkJourney)) {
+          const allJ = allJourneys.get(conn.fromStop) || [];
+          allJ.push(walkJourney);
+          allJourneys.set(conn.fromStop, allJ);
+        }
+      }
+    }
+
+    // ========== PROCESS JOURNEYS AT FROM STOP ==========
+    const fromJourneys = paretoJourneys.get(conn.fromStop) || [];
 
     for (const fromJourney of fromJourneys) {
-      // Can we catch this connection from this journey?
       if (fromJourney.arrival > conn.departure) continue;
 
       const isTransfer =
@@ -374,7 +395,7 @@ function scanWindow(
 
       if (newTransfers > maxTransfers) continue;
 
-      const newJourney = {
+      const newJourney: Journey = {
         id: journeyIdCounter++,
         arrival: conn.arrival,
         prevStop: conn.fromStop,
@@ -388,44 +409,48 @@ function scanWindow(
         originWalkDistance: fromJourney.originWalkDistance,
       };
 
-      // Add if Pareto-optimal
-      addParetoJourney(conn.toStop, newJourney);
+      if (addParetoJourney(conn.toStop, newJourney)) {
+        const allJ = allJourneys.get(conn.toStop) || [];
+        allJ.push(newJourney);
+        allJourneys.set(conn.toStop, allJ);
 
-      if (!allJourneys[conn.toStop]) {
-        allJourneys[conn.toStop] = [];
-      }
-      allJourneys[conn.toStop].push(newJourney);
+        // Apply transfers from this stop
+        const counterRef = { val: journeyIdCounter };
+        applyTransfers(
+          conn.toStop,
+          conn.arrival,
+          conn.routeId,
+          newTransfers,
+          connections,
+          paretoJourneys,
+          allJourneys,
+          counterRef,
+          {
+            stopId: fromJourney.originStopId ?? 0,
+            walkTime: fromJourney.originWalkTime ?? 0,
+            distance: fromJourney.originWalkDistance,
+          },
+        );
+        journeyIdCounter = counterRef.val;
 
-      const counterRef = { val: journeyIdCounter };
-      applyTransfers(
-        conn.toStop,
-        conn.arrival,
-        conn.routeId,
-        newTransfers,
-        connections,
-        paretoJourneys,
-        allJourneys,
-        counterRef,
-        {
-          stopId: fromJourney.originStopId ?? 0,
-          walkTime: fromJourney.originWalkTime ?? 0,
-          distance: fromJourney.originWalkDistance,
+        // Track best arrival at destinations for early termination
+        if (destStopSet.has(conn.toStop)) {
+          bestDestArrival = Math.min(bestDestArrival, conn.arrival);
         }
-      );
-      journeyIdCounter = counterRef.val;
+      }
     }
   }
+
+  // Reconstruct routes for all destination stops
   const destStopMap = new Map(destinationStops.map((d) => [d.stopId, d]));
 
-  // checking to which destination stops we are able to get
   for (const dest of destinationStops) {
-    // selecting only valid routes
-    const journeysToStop = allJourneys[dest.stopId] || [];
+    const journeysToStop = allJourneys.get(dest.stopId) || [];
     for (const journey of journeysToStop) {
       const route = reconstructRouteFromJourney(
         journey,
         allJourneys,
-        destStopMap
+        destStopMap,
       );
       if (route) {
         foundRoutes.push(route);
@@ -434,6 +459,68 @@ function scanWindow(
   }
 
   return foundRoutes;
+}
+
+/**
+ * Updated connectionScanAllDay to use optimized version
+ */
+function connectionScanAllDayOptimized(
+  originStops: IStop[],
+  destinationStops: IStop[],
+  connections: Map<number, Connections>,
+  stopsByGroup: Map<number, number[]>,
+  startTime: number = 972,
+  endTime: number = 1100,
+) {
+  const maxTransfers = 5;
+
+  // Initialize connections if needed
+  if (cachedSortedConnections.length === 0) {
+    initializeRouter(connections, stopsByGroup);
+  }
+
+  // BUILD REVERSE TRANSFER INDEX ONCE
+  const transfersToIndex = buildReverseTransferIndex(connections);
+
+  const fullSchedule = cachedSortedConnections;
+  let globalStartIndex = binarySearchStartIndex(fullSchedule, startTime);
+
+  const SCAN_WINDOW = 10;
+  const allRoutes: IRoute[] = [];
+
+  // Sort origin stops by walk time
+  const sortedOrigins = [...originStops].sort(
+    (a, b) => a.walkTime - b.walkTime,
+  );
+
+  // Scan windows for each origin
+  for (const origin of sortedOrigins) {
+    for (let time = startTime; time < endTime; time += SCAN_WINDOW) {
+      const windowStart = time;
+
+      let windowStartIndex = binarySearchStartIndex(
+        fullSchedule,
+        windowStart,
+        globalStartIndex,
+      );
+
+      // USE OPTIMIZED VERSION
+      const windowRoutes = scanWindowOptimized(
+        origin,
+        destinationStops,
+        fullSchedule,
+        connections,
+        maxTransfers,
+        windowStart,
+        windowStartIndex,
+        transfersToIndex, // Pass pre-built index
+      );
+
+      allRoutes.push(...(windowRoutes as IRoute[]));
+    }
+  }
+
+  return filterAndDeduplicateRoutes(allRoutes);
 }
 
 /**
@@ -448,7 +535,7 @@ function applyTransfers(
   paretoJourneys: { [stopId: number]: Journey[] },
   allJourneys: { [stopId: number]: Journey[] },
   journeyIdCounter: { val: number },
-  originData: { stopId: number; walkTime: number; distance: number }
+  originData: { stopId: number; walkTime: number; distance: number },
 ) {
   const stopConn = connections.get(stopId);
   if (!stopConn || !stopConn.transfers) return;
@@ -456,7 +543,7 @@ function applyTransfers(
   // Helper function to check if a journey is Pareto-dominated
   function isParetoOptimal(
     newJourney: Journey,
-    existingJourneys: Journey[]
+    existingJourneys: Journey[],
   ): boolean {
     if (!existingJourneys || existingJourneys.length === 0) return true;
 
@@ -611,12 +698,13 @@ function applyTransfers(
  */
 function reconstructRouteFromJourney(
   destJourney: Journey,
-  allJourneys: { [stopId: number]: Journey[] },
-  destStopMap: Map<number, IStop>
+  allJourneys: Map<number, Journey[]>, // NOW A MAP
+  destStopMap: Map<number, IStop>,
 ) {
   const pathSegments: ITransitSegment[] = [];
   let currentJourney = destJourney;
   const path = [];
+
   // backtrack the journey from end to start
   while (currentJourney !== null) {
     path.unshift({
@@ -632,12 +720,22 @@ function reconstructRouteFromJourney(
     // moving to next segment
     const prevStop = currentJourney.prevStop;
     if (typeof prevStop === "number") {
-      const journeysAtPrev = allJourneys[prevStop] || [];
+      const journeysAtPrev = allJourneys.get(prevStop) || []; // USE .get() FOR MAP
       const foundJourney = journeysAtPrev.find(
-        (j) => j.id === currentJourney.prevJourneyId
+        (j) => j.id === currentJourney.prevJourneyId,
       );
 
-      if (!foundJourney) throw new Error("Previous journey not found");
+      if (!foundJourney) {
+        console.error("Journey reconstruction failed:", {
+          currentJourneyId: currentJourney.id,
+          prevJourneyId: currentJourney.prevJourneyId,
+          prevStop,
+          availableJourneys: journeysAtPrev.map((j) => j.id),
+        });
+        throw new Error(
+          `Previous journey not found: ID ${currentJourney.prevJourneyId} at stop ${prevStop}`,
+        );
+      }
       currentJourney = foundJourney;
     } else {
       break;
@@ -739,6 +837,7 @@ const SCORING_CONFIG = {
  */
 function filterAndDeduplicateRoutes(routes: IRoute[]) {
   if (!routes.length) return [];
+  return routes;
   const scoredRoutes = routes.map((route) => ({
     route,
     score: calculateRouteScore(route),
@@ -749,7 +848,7 @@ function filterAndDeduplicateRoutes(routes: IRoute[]) {
 
   // filter out bad scores
   const filteredRoutes = scoredRoutes.filter(
-    (route) => route.score <= bestScore * 1.5
+    (route) => route.score <= bestScore * 1.5,
   );
 
   // deduplication algorithm
@@ -847,7 +946,7 @@ async function buildJourneyDetails(
   depRoutes: DepartureRoute[],
   fullRoutesByRoute: Map<number, FullRoute[]>,
   additionalByDep: Map<number, Set<number>>,
-  routeGeometryByDep: Map<number, IRouteGeometry[]>
+  routeGeometryByDep: Map<number, IRouteGeometry[]>,
 ) {
   const segments = [];
 
@@ -874,7 +973,7 @@ async function buildJourneyDetails(
         fromInfo && toInfo
           ? getPreciseDistance(
               { latitude: fromInfo.lat, longitude: fromInfo.lon },
-              { latitude: toInfo.lat, longitude: toInfo.lon }
+              { latitude: toInfo.lat, longitude: toInfo.lon },
             )
           : pathSeg.duration * WALK_SPEED;
 
@@ -910,8 +1009,8 @@ async function buildJourneyDetails(
           depRoutes,
           fullRoutesByRoute,
           additionalByDep,
-          routeGeometryByDep
-        )
+          routeGeometryByDep,
+        ),
       );
     }
   }
@@ -949,7 +1048,7 @@ export function formatTime(minutes: number) {
 function binarySearchStartIndex(
   schedule: Connection[],
   targetTime: number,
-  startFrom: number = 0
+  startFrom: number = 0,
 ) {
   let left = startFrom;
   let right = schedule.length - 1;
@@ -971,13 +1070,13 @@ function binarySearchStartIndex(
 async function findNearbyStops(
   lat: number,
   lon: number,
-  stopInfo: Map<number, Stop>
+  stopInfo: Map<number, Stop>,
 ) {
   const nearbyStops = [];
   for (const [stopId, info] of stopInfo) {
     const distance = getPreciseDistance(
       { latitude: lon, longitude: lat },
-      { latitude: info.lon, longitude: info.lat }
+      { latitude: info.lon, longitude: info.lat },
     );
     if (distance <= MAX_WALK_DISTANCE) {
       nearbyStops.push({ stopId, info, distance });
@@ -996,7 +1095,7 @@ async function findNearbyStops(
       .join("|");
 
     const res = await fetch(
-      `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${lon},${lat}&destinations=${destinations}&mode=walking&units=metric&key=${process.env.GOOGLE_KEY}`
+      `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${lon},${lat}&destinations=${destinations}&mode=walking&units=metric&key=${process.env.GOOGLE_KEY}`,
     );
 
     const data = await res.json();
