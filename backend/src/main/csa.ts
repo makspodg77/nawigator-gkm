@@ -26,7 +26,7 @@ const MAX_WALK_DISTANCE = MAX_WALK_TIME * WALK_SPEED; // 960 meters
  */
 export function initializeRouter(
   connections: Map<number, Connections>,
-  stopsByGroup: Map<number, number[]>
+  stopsByGroup: Map<number, number[]>,
 ) {
   if (cachedSortedConnections.length > 0) return;
   let cachedStopToGroupMap: StopToGroupMap = new Map();
@@ -49,12 +49,13 @@ export function initializeRouter(
               depTime.key,
               groupId,
               depTime.time + ride.travelTime,
+              ride.direction,
               ride.routeId,
               ride.lineName,
               ride.lineType,
               ride.lineColor,
-              ride.signature
-            )
+              ride.signature,
+            ),
           );
         }
       }
@@ -79,7 +80,7 @@ export async function csaCoordinateRouting(
   depRoutes: DepartureRoute[],
   fullRoutesByRoute: Map<number, FullRoute[]>,
   additionalByDep: Map<number, Set<number>>,
-  routeGeometryByDep: Map<number, IRouteGeometry[]>
+  routeGeometryByDep: Map<number, IRouteGeometry[]>,
 ) {
   // look for closest stop to given coords
   const originStops = await findNearbyStops(lat1, lon1, stopInfo);
@@ -104,7 +105,7 @@ export async function csaCoordinateRouting(
     connections,
     stopsByGroup,
     startTime,
-    endTime
+    endTime,
   );
 
   // format routes 🤣😂😂😁
@@ -117,7 +118,7 @@ export async function csaCoordinateRouting(
         depRoutes,
         fullRoutesByRoute,
         additionalByDep,
-        routeGeometryByDep
+        routeGeometryByDep,
       );
 
       const transitTime = route.arrival - route.actualDeparture;
@@ -145,18 +146,18 @@ export async function csaCoordinateRouting(
           initialWalk:
             route.initialWalk > 0
               ? `${route.initialWalk}min (${Math.round(
-                  route.initialWalkDistance
+                  route.initialWalkDistance,
                 )}m)`
               : "None",
           finalWalk:
             route.finalWalk > 0
               ? `${route.finalWalk}min (${Math.round(
-                  route.finalWalkDistance
+                  route.finalWalkDistance,
                 )}m)`
               : "None",
         },
       };
-    })
+    }),
   );
 
   return {
@@ -201,7 +202,7 @@ function connectionScanAllDay(
   connections: Map<number, Connections>,
   stopsByGroup: Map<number, number[]>,
   startTime: number = 972,
-  endTime: number = 1100
+  endTime: number = 1100,
 ) {
   const maxTransfers = 5;
 
@@ -219,7 +220,7 @@ function connectionScanAllDay(
 
   // sort origin stops by walk time
   const sortedOrigins = [...originStops].sort(
-    (a, b) => a.walkTime - b.walkTime
+    (a, b) => a.walkTime - b.walkTime,
   );
 
   // look for best connection from every origin stop in every window each
@@ -231,7 +232,7 @@ function connectionScanAllDay(
       let windowStartIndex = binarySearchStartIndex(
         fullSchedule,
         windowStart,
-        globalStartIndex
+        globalStartIndex,
       );
 
       // main csa function
@@ -242,7 +243,7 @@ function connectionScanAllDay(
         connections,
         maxTransfers,
         windowStart,
-        windowStartIndex
+        windowStartIndex,
       );
 
       allRoutes.push(...(windowRoutes as IRoute[]));
@@ -262,7 +263,7 @@ function scanWindow(
   connections: Map<number, Connections>,
   maxTransfers: number,
   windowStart: number,
-  startIndex: number
+  startIndex: number,
 ) {
   const foundRoutes = [];
 
@@ -312,7 +313,7 @@ function scanWindow(
       stopId: origin.stopId,
       walkTime: origin.walkTime,
       distance: origin.distance,
-    }
+    },
   );
   journeyIdCounter = counterObj.val;
 
@@ -385,7 +386,7 @@ function scanWindow(
         stopId: fromJourney.originStopId ?? 0,
         walkTime: fromJourney.originWalkTime ?? 0,
         distance: fromJourney.originWalkDistance,
-      }
+      },
     );
     journeyIdCounter = counterRef.val;
   }
@@ -402,7 +403,7 @@ function scanWindow(
       const route = reconstructRouteFromJourney(
         journey,
         allJourneys,
-        destStopMap
+        destStopMap,
       );
       if (route) {
         foundRoutes.push(route);
@@ -426,7 +427,7 @@ function applyTransfers(
   journeyMap: { [stopId: number]: Journey },
   allJourneys: { [stopId: number]: Journey[] },
   journeyIdCounter: { val: number },
-  originData: { stopId: number; walkTime: number; distance: number }
+  originData: { stopId: number; walkTime: number; distance: number },
 ) {
   const stopConn = connections.get(stopId);
   if (!stopConn || !stopConn.transfers) return;
@@ -524,7 +525,7 @@ function applyTransfers(
 function reconstructRouteFromJourney(
   destJourney: Journey,
   allJourneys: { [stopId: number]: Journey[] },
-  destStopMap: Map<number, IStop>
+  destStopMap: Map<number, IStop>,
 ) {
   const pathSegments: ITransitSegment[] = [];
   let currentJourney = destJourney;
@@ -546,7 +547,7 @@ function reconstructRouteFromJourney(
     if (typeof prevStop === "number") {
       const journeysAtPrev = allJourneys[prevStop] || [];
       const foundJourney = journeysAtPrev.find(
-        (j) => j.id === currentJourney.prevJourneyId
+        (j) => j.id === currentJourney.prevJourneyId,
       );
 
       if (!foundJourney) throw new Error("Previous journey not found");
@@ -598,6 +599,7 @@ function reconstructRouteFromJourney(
         departure: firstConn.departure ?? -1,
         arrival: lastArrival ?? -1,
         routeId,
+        direction: lastConn.direction,
         key: firstConn.key,
         line: firstConn.lineName,
         lineType: firstConn.lineType,
@@ -661,7 +663,7 @@ function filterAndDeduplicateRoutes(routes: IRoute[]) {
 
   // filter out bad scores
   const filteredRoutes = scoredRoutes.filter(
-    (route) => route.score <= bestScore * 1.5
+    (route) => route.score <= bestScore * 1.5,
   );
 
   // deduplication algorithm
@@ -759,7 +761,7 @@ async function buildJourneyDetails(
   depRoutes: DepartureRoute[],
   fullRoutesByRoute: Map<number, FullRoute[]>,
   additionalByDep: Map<number, Set<number>>,
-  routeGeometryByDep: Map<number, IRouteGeometry[]>
+  routeGeometryByDep: Map<number, IRouteGeometry[]>,
 ) {
   const segments = [];
 
@@ -786,7 +788,7 @@ async function buildJourneyDetails(
         fromInfo && toInfo
           ? getPreciseDistance(
               { latitude: fromInfo.lat, longitude: fromInfo.lon },
-              { latitude: toInfo.lat, longitude: toInfo.lon }
+              { latitude: toInfo.lat, longitude: toInfo.lon },
             )
           : pathSeg.duration * WALK_SPEED;
 
@@ -809,6 +811,8 @@ async function buildJourneyDetails(
             fromName: getStopName(pathSeg.from, stopInfo),
             toName: getStopName(pathSeg.to, stopInfo),
             departure: pathSeg.departure,
+            direction: pathSeg.direction,
+            directionName: getStopName(pathSeg.direction, stopInfo),
             arrival: pathSeg.arrival,
             duration: pathSeg.arrival - pathSeg.departure,
             line: pathSeg.line,
@@ -822,8 +826,8 @@ async function buildJourneyDetails(
           depRoutes,
           fullRoutesByRoute,
           additionalByDep,
-          routeGeometryByDep
-        )
+          routeGeometryByDep,
+        ),
       );
     }
   }
@@ -861,7 +865,7 @@ export function formatTime(minutes: number) {
 function binarySearchStartIndex(
   schedule: Connection[],
   targetTime: number,
-  startFrom: number = 0
+  startFrom: number = 0,
 ) {
   let left = startFrom;
   let right = schedule.length - 1;
@@ -883,13 +887,13 @@ function binarySearchStartIndex(
 async function findNearbyStops(
   lat: number,
   lon: number,
-  stopInfo: Map<number, Stop>
+  stopInfo: Map<number, Stop>,
 ) {
   const nearbyStops = [];
   for (const [stopId, info] of stopInfo) {
     const distance = getPreciseDistance(
       { latitude: lon, longitude: lat },
-      { latitude: info.lon, longitude: info.lat }
+      { latitude: info.lon, longitude: info.lat },
     );
     if (distance <= MAX_WALK_DISTANCE) {
       nearbyStops.push({ stopId, info, distance });
@@ -908,7 +912,7 @@ async function findNearbyStops(
       .join("|");
 
     const res = await fetch(
-      `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${lon},${lat}&destinations=${destinations}&mode=walking&units=metric&key=${process.env.GOOGLE_KEY}`
+      `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${lon},${lat}&destinations=${destinations}&mode=walking&units=metric&key=${process.env.GOOGLE_KEY}`,
     );
 
     const data = await res.json();

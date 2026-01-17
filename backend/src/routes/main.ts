@@ -17,7 +17,7 @@ export const transitRouter = new Elysia()
     async ({ body, store }) => {
       if (!store.preprocessedData) {
         throw new ValidationError(
-          "System not initialized. Call /initialize first"
+          "System not initialized. Call /initialize first",
         );
       }
 
@@ -36,7 +36,7 @@ export const transitRouter = new Elysia()
         store.preprocessedData.depRoutes,
         store.preprocessedData.fullRoutesByRoute,
         store.preprocessedData.additionalByDep,
-        store.preprocessedData.routeGeometryByDep
+        store.preprocessedData.routeGeometryByDep,
       );
 
       return result;
@@ -51,5 +51,5 @@ export const transitRouter = new Elysia()
         endTime: t.Numeric({ minimum: 0, maximum: 1440 }),
         options: t.Optional(t.Object({})),
       }),
-    }
+    },
   );

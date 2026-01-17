@@ -20,7 +20,7 @@ export class Stop {
     coords: string,
     public street: string,
     public alias: string,
-    public groupName: string
+    public groupName: string,
   ) {
     this.id = Number(id);
     this.groupId = Number(groupId);
@@ -32,7 +32,10 @@ export class Stop {
 
 export class StopGroup {
   public id: number;
-  constructor(id: string, public name: string) {
+  constructor(
+    id: string,
+    public name: string,
+  ) {
     this.id = Number(id);
   }
 }
@@ -40,7 +43,11 @@ export class StopGroup {
 export class Line {
   public id: number;
   public lineTypeId: number;
-  constructor(id: string, public name: string, lineTypeId: string) {
+  constructor(
+    id: string,
+    public name: string,
+    lineTypeId: string,
+  ) {
     this.id = Number(id);
     this.lineTypeId = Number(lineTypeId);
   }
@@ -52,7 +59,7 @@ export class LineType {
     id: string,
     public nameSingular: string,
     public namePlural: string,
-    public color: string
+    public color: string,
   ) {
     this.id = Number(id);
   }
@@ -65,7 +72,7 @@ export class Route {
     id: string,
     lineId: string,
     public isCircular: boolean,
-    public isNight: boolean
+    public isNight: boolean,
   ) {
     this.id = Number(id);
     this.lineId = Number(lineId);
@@ -79,7 +86,7 @@ export class DepartureRoute {
     id: string,
     public signature: string,
     public color: string,
-    routeId: string
+    routeId: string,
   ) {
     this.id = Number(id);
     this.routeId = Number(routeId);
@@ -102,7 +109,7 @@ export class FullRoute {
     routeId: string,
     public isFirst: boolean,
     public isLast: boolean,
-    public isOptional: boolean
+    public isOptional: boolean,
   ) {
     this.id = Number(id);
     this.stopId = Number(stopId);
@@ -149,6 +156,7 @@ export interface RideConnection {
   departures: { time: number; key: string }[];
   isOnRequest: boolean;
   lineName: string;
+  direction: number;
   lineType: string;
   lineColor: string;
   signature: string;

@@ -6,13 +6,14 @@ export class Connection {
     public key: string,
     public groupId: number,
     public arrival: number,
+    public direction: number,
     public routeId: number,
     public lineName: string,
     public lineType: string,
     public lineColor: string,
     public signature: string,
     public transfers: number = 0,
-    public type: string = "transit"
+    public type: string = "transit",
   ) {}
 }
 
@@ -65,6 +66,7 @@ export interface ITransitSegment extends ISegment {
   arrival: number;
   routeId: number;
   key: string;
+  direction: number;
   line: string;
   lineType: string;
   lineColor: string;
@@ -74,6 +76,7 @@ export interface ITransitSegment extends ISegment {
 export interface IPreFinalSegment extends ITransitSegment {
   fromName: string;
   toName: string;
+  directionName: string;
 }
 
 export interface IFinalSegment extends ITransitSegment {
@@ -91,6 +94,7 @@ export interface IRoute {
   initialWalk: number;
   initialWalkDistance: number;
   key: string;
+  direction: number;
   finalWalk: number;
   finalWalkDistance: number;
   departure: number;

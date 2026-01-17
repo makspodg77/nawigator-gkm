@@ -13,16 +13,19 @@ export async function populateRoutes(
   depRoutes: DepartureRoute[],
   fullRoutesByRoute: Map<number, FullRoute[]>,
   additionalByDep: Map<number, Set<number>>,
-  routeGeometryByDep: Map<number, IRouteGeometry[]>
+  routeGeometryByDep: Map<number, IRouteGeometry[]>,
 ) {
   const routeId = depRoutes.find((dr) => dr.id == segment.routeId)?.routeId;
   if (!routeId) return segment;
 
   const additionalStops = additionalByDep.get(segment.routeId);
 
-  const fullRoute = fullRoutesByRoute
-    .get(routeId)
-    ?.filter((fr) => !fr.isOptional || additionalStops?.has(fr.stopNumber));
+  const unfilteredRoute = fullRoutesByRoute.get(routeId);
+  if (!unfilteredRoute) return segment;
+
+  const fullRoute = unfilteredRoute.filter(
+    (fr) => !fr.isOptional || additionalStops?.has(fr.stopNumber),
+  );
 
   if (!fullRoute) return segment;
 
@@ -39,17 +42,9 @@ export async function populateRoutes(
   const allGeometry = routeGeometryByDep.get(segment.routeId) || [];
   const sortedGeometry = allGeometry.sort((a, b) => a.id - b.id);
 
-  const fromGeomIndex = sortedGeometry.findIndex(
-    (g) => g.stopNumber === fromStopNumber
+  const routeGeometry = sortedGeometry.filter(
+    (g) => g.stopNumber >= fromStopNumber && g.stopNumber <= toStopNumber,
   );
-  const toGeomIndex = sortedGeometry.findIndex(
-    (g) => g.stopNumber === toStopNumber
-  );
-
-  const routeGeometry =
-    fromGeomIndex !== -1 && toGeomIndex !== -1
-      ? sortedGeometry.slice(fromGeomIndex, toGeomIndex + 1)
-      : [];
 
   let departureTime = segment.departure;
   const stopsBetween = fullRoute.slice(from + 1, to).map((stop) => {
@@ -67,11 +62,9 @@ export async function populateRoutes(
     formattedDeparture: formatTime(segment.departure),
     formattedArrival: formatTime(segment.arrival),
     stopsBetween: stopsBetween,
-    coords: routeGeometry
-      .sort((a, b) => a.id - b.id)
-      .map((g) => ({
-        lat: g.lat,
-        lon: g.lon,
-      })),
+    coords: routeGeometry.map((g) => ({
+      lat: g.lat,
+      lon: g.lon,
+    })),
   };
 }

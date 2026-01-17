@@ -67,31 +67,31 @@ export const preprocess = async () => {
     rawRouteGeometry,
   ] = await Promise.all([
     executeQuery<any>(
-      `SELECT s.id, s.alias, sg.name as "groupName", s.stop_group_id as "groupId", split_part(s.map, ',', 1) as lat, split_part(s.map, ',', 2) as lon FROM stop s JOIN stop_group sg ON sg.id = s.stop_group_id`
+      `SELECT s.id, s.alias, sg.name as "groupName", s.stop_group_id as "groupId", split_part(s.map, ',', 1) as lat, split_part(s.map, ',', 2) as lon FROM stop s JOIN stop_group sg ON sg.id = s.stop_group_id`,
     ),
     executeQuery<any>(
-      'SELECT id, name, line_type_id as "lineTypeId" FROM line'
+      'SELECT id, name, line_type_id as "lineTypeId" FROM line',
     ),
     executeQuery<any>(
-      'SELECT id, name_singular as "nameSingular", color FROM line_type'
+      'SELECT id, name_singular as "nameSingular", color FROM line_type',
     ),
     executeQuery<any>(
-      'SELECT id, line_id as "lineId", is_night as "isNight" FROM route'
+      'SELECT id, line_id as "lineId", is_night as "isNight" FROM route',
     ),
     executeQuery<any>(
-      'SELECT id, signature, color, route_id as "routeId" FROM departure_route'
+      'SELECT id, signature, color, route_id as "routeId" FROM departure_route',
     ),
     executeQuery<any>(
-      'SELECT id, stop_id as "stopId", travel_time as "travelTime", stop_number as "stopNumber", route_id as "routeId", is_optional as "isOptional" FROM full_route ORDER BY route_id, stop_number'
+      'SELECT id, stop_id as "stopId", travel_time as "travelTime", stop_number as "stopNumber", route_id as "routeId", is_optional as "isOptional" FROM full_route ORDER BY route_id, stop_number',
     ),
     executeQuery<any>(
-      'SELECT route_id as "routeId", departure_time as "departureTime" FROM timetable ORDER BY route_id, departure_time'
+      'SELECT route_id as "routeId", departure_time as "departureTime" FROM timetable ORDER BY route_id, departure_time',
     ),
     executeQuery<any>(
-      'SELECT route_id as "routeId", stop_number as "stopNumber" FROM additional_stop'
+      'SELECT route_id as "routeId", stop_number as "stopNumber" FROM additional_stop',
     ),
     executeQuery<any>(
-      "SELECT id, lat, lon, departure_route_id, stop_number from map_route"
+      "SELECT id, lat, lon, departure_route_id, stop_number from map_route",
     ),
   ]);
 
@@ -205,7 +205,7 @@ export const preprocess = async () => {
 
     const activeStops = (fullRoutesByRoute.get(depRoute.routeId) || []).filter(
       (fr) =>
-        !fr.isOptional || additionalByDep.get(depRoute.id)?.has(fr.stopNumber)
+        !fr.isOptional || additionalByDep.get(depRoute.id)?.has(fr.stopNumber),
     );
     let currentOffset = 0;
     const timeline = activeStops.map((stop, index) => {
@@ -227,6 +227,7 @@ export const preprocess = async () => {
           from: from.stopId,
           to: to.stopId,
           travelTime: distTime,
+          direction: activeStops[activeStops.length - 1].stopId,
           routeId: depRoute.id,
           lineType: lineTypeMap.get(line.lineTypeId)?.nameSingular,
           signature: depRoute.signature,
@@ -265,12 +266,12 @@ export const preprocess = async () => {
 
       const dist = getPreciseDistance(
         { lat: stop.lat, lon: stop.lon },
-        { lat: neighbor.lat, lon: neighbor.lon }
+        { lat: neighbor.lat, lon: neighbor.lon },
       );
 
       if (dist <= CONFIG.WALK_LIMIT_METERS) {
         const walkTimeMinutes = Math.ceil(
-          dist / CONFIG.WALK_SPEED_METERS_PER_MIN
+          dist / CONFIG.WALK_SPEED_METERS_PER_MIN,
         );
 
         connections.get(stop.id)?.transfers.push({
