@@ -1,61 +1,59 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
-import "leaflet/dist/leaflet.css";
 import { StopsContext, type StopGroup } from "./contexts/stopContext";
 import { TimeProvider } from "./contexts/timeContext";
 import { TripProvider } from "./contexts/tripContext";
 import Main from "./pages/main";
 import { SearchProvider } from "./contexts/searchbarContex";
-
-const formatTime = (h: number, m: number) => {
-  return h * 60 + m;
-};
+import { MenuProvider } from "./contexts/menuContext";
+import { timeStringToMinutes } from "./components/clock/clock";
 
 function App() {
-  const [initialized, setInitialized] = useState(false);
   const [stops, setStops] = useState<StopGroup[]>([]);
+
   const initialTime = useMemo(
-    () => formatTime(new Date().getHours(), new Date().getMinutes()),
+    () =>
+      timeStringToMinutes(
+        [new Date().getHours(), new Date().getMinutes()].join(":"),
+      ),
     [],
   );
 
   useEffect(() => {
     const initialize = async () => {
-      await fetch("http://localhost:2137/initialize", {
-        method: "POST",
-      }).then((response) => {
-        if (response.ok) {
-          setInitialized(true);
+      try {
+        const initResponse = await fetch("http://localhost:2137/initialize", {
+          method: "POST",
+        });
+
+        if (!initResponse.ok) {
+          throw new Error("Initialization failed");
         }
-      });
+
+        const stopsResponse = await fetch("http://localhost:2137/stops");
+        const data = await stopsResponse.json();
+
+        setStops(data);
+      } catch (error) {
+        console.error("Failed to initialize:", error);
+      }
     };
 
     initialize();
   }, []);
 
-  useEffect(() => {
-    const getStops = async () => {
-      await fetch("http://localhost:2137/stops").then(async (response) => {
-        const data = await response.json();
-        if (data) {
-          setStops(data);
-        }
-      });
-    };
-
-    if (initialized) getStops();
-  }, [initialized]);
-
   return (
-    <TimeProvider initialTime={initialTime}>
-      <SearchProvider>
-        <TripProvider>
-          <StopsContext value={stops}>
-            <Main />
-          </StopsContext>
-        </TripProvider>
-      </SearchProvider>
-    </TimeProvider>
+    <MenuProvider>
+      <TimeProvider initialTime={initialTime}>
+        <SearchProvider>
+          <TripProvider>
+            <StopsContext value={stops}>
+              <Main />
+            </StopsContext>
+          </TripProvider>
+        </SearchProvider>
+      </TimeProvider>
+    </MenuProvider>
   );
 }
 

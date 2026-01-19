@@ -1,14 +1,13 @@
 import styles from "./menu.module.css";
 import InitialMenuState from "./menuStates/initial/initial";
+import FoundRoutesMenuState from "./menuStates/foundRoutes/foundRoutes";
+import { useMenu } from "../../contexts/menuContext";
 
 const Menu = () => {
+  const { menu } = useMenu();
   return (
-    <div
-      onClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-      className={styles.menu}
-    >
-      <InitialMenuState />
+    <div className={styles.menu}>
+      {menu === 1 ? <InitialMenuState /> : <FoundRoutesMenuState />}
     </div>
   );
 };

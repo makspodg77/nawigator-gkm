@@ -6,7 +6,8 @@ import Searchbar from "../../../searchbar/searchbar";
 import StopList from "../../../stopList/stopList";
 import type { Coordinates } from "../../../../contexts/routeContext";
 
-const getDisplayValue = (source: LocationSource) => {
+// eslint-disable-next-line react-refresh/only-export-components
+export const getDisplayValue = (source: LocationSource) => {
   if (source.type === "none") return "";
   if (source.type === "map") return "Point from map";
   if (source.type === "stop") return source.name;
@@ -80,7 +81,11 @@ const InitialMenuState = () => {
       {isToFocused ? <StopList value={valueTo} onClick={handleToSelect} /> : ""}
       {!isFromFocused && !isToFocused ? <Clock /> : ""}
 
-      {!isFromFocused && !isToFocused && tripReady ? <button></button> : ""}
+      {!isFromFocused && !isToFocused && tripReady ? (
+        <button>Szukaj</button>
+      ) : (
+        ""
+      )}
     </>
   );
 };

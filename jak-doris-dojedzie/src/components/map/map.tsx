@@ -6,9 +6,10 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import { useTrip } from "../../contexts/tripContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import styles from "./map.module.css";
+import "leaflet/dist/leaflet.css";
 
 function MapClickHandler() {
   const { setStart, setEnd } = useTrip();
@@ -20,11 +21,25 @@ function MapClickHandler() {
     y: number;
   } | null>(null);
 
+  useEffect(() => {
+    if (clickedPosition) {
+      map.dragging.disable();
+      map.scrollWheelZoom.disable();
+      map.doubleClickZoom.disable();
+    } else {
+      map.dragging.enable();
+      map.scrollWheelZoom.enable();
+      map.doubleClickZoom.enable();
+    }
+  }, [clickedPosition, map]);
+
   useMapEvents({
     click: (e) => {
-      const { lat, lng } = e.latlng;
-      const point = map.latLngToContainerPoint(e.latlng);
-      setClickedPosition({ lat, lon: lng, x: point.x, y: point.y });
+      if (!clickedPosition) {
+        const { lat, lng } = e.latlng;
+        const point = map.latLngToContainerPoint(e.latlng);
+        setClickedPosition({ lat, lon: lng, x: point.x, y: point.y });
+      }
     },
   });
 
@@ -32,15 +47,20 @@ function MapClickHandler() {
 
   return (
     <div
-      style={{
-        position: "absolute",
-        left: clickedPosition.x,
-        top: clickedPosition.y,
-        zIndex: 1000,
-        transform: "translate(-50%, -100%)",
+      className={styles.buttonsContainer}
+      onClick={(e) => {
+        e.stopPropagation();
+        setClickedPosition(null);
       }}
+      onMouseDown={(e) => e.stopPropagation()}
     >
       <div
+        style={{
+          position: "absolute",
+          left: clickedPosition.x,
+          top: clickedPosition.y,
+          transform: "translate(-50%, -100%)",
+        }}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
