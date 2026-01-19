@@ -4,6 +4,8 @@ export type StopGroup = {
   id: number;
   name: string;
   municipality: number;
+  lat: number;
+  lon: number;
   lines: string[];
 };
 

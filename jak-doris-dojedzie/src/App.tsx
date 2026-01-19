@@ -3,8 +3,8 @@ import "./App.css";
 import "leaflet/dist/leaflet.css";
 import { StopsContext, type StopGroup } from "./contexts/stopContext";
 import { TimeProvider } from "./contexts/timeContext";
-import MapView from "./components/map/map";
 import { TripProvider } from "./contexts/tripContext";
+import Main from "./pages/main";
 
 const formatTime = (date: Date) => {
   const h = date.getHours();
@@ -49,7 +49,7 @@ function App() {
     <TimeProvider initialTime={initialTime}>
       <TripProvider>
         <StopsContext value={stops}>
-          <MapView />
+          <Main />
         </StopsContext>
       </TripProvider>
     </TimeProvider>

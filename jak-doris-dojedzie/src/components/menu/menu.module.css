@@ -1,0 +1,9 @@
+.menu {
+  max-width: 62.5rem;
+  min-height: 62.5rem;
+  padding: 1rem 2rem;
+  background-color: rgb(165, 184, 184);
+  position: absolute;
+
+  z-index: 1000;
+}
