@@ -55,7 +55,8 @@ export const transitRouter = new Elysia()
   )
   .get("/stops", async ({ store }) => {
     const stopGroups = store.preprocessedData.stopGroups;
-    const linesAtStopGroup = store.preprocessedData.linesAtStopGroup;
+    const linesAtStopGroup: Map<number, string[]> =
+      store.preprocessedData.linesAtStopGroup;
     const meanStopGroupLocation = store.preprocessedData.meanStopGroupLocation;
     return stopGroups.map((sg: StopGroup) => ({
       ...sg,
