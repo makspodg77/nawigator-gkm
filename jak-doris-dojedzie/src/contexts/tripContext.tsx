@@ -1,11 +1,13 @@
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
+import type { Coordinates } from "./routeContext";
 
 type Trip = {
-  start?: [number, number];
-  end?: [number, number];
-  setStart: (coords: [number, number]) => void;
-  setEnd: (coords: [number, number]) => void;
+  start: Coordinates | null;
+  end: Coordinates | null;
+  setStart: (coords: Coordinates) => void;
+  setEnd: (coords: Coordinates) => void;
+  tripReady: boolean;
 };
 
 const TripContext = createContext<Trip | undefined>(undefined);
@@ -13,14 +15,13 @@ const TripContext = createContext<Trip | undefined>(undefined);
 export const TripProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [start, setStartState] = useState<[number, number]>();
-  const [end, setEndState] = useState<[number, number]>();
+  const [start, setStart] = useState<Coordinates | null>(null);
+  const [end, setEnd] = useState<Coordinates | null>(null);
 
-  const setStart = (coords: [number, number]) => setStartState(coords);
-  const setEnd = (coords: [number, number]) => setEndState(coords);
+  const tripReady = start !== null && end !== null;
 
   return (
-    <TripContext.Provider value={{ start, end, setStart, setEnd }}>
+    <TripContext.Provider value={{ start, end, setStart, setEnd, tripReady }}>
       {children}
     </TripContext.Provider>
   );
