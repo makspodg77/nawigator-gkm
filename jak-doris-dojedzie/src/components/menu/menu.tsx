@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import styles from "./menu.module.css";
 import { useSearch } from "../../hooks/useSearch";
 import { useTrip, type LocationSource } from "../../contexts/tripContext";
+import Clock from "../clock/clock";
 
 const Menu = () => {
   const [valueFrom, setValueFrom] = useState("");
@@ -56,11 +57,11 @@ const Menu = () => {
         onBlur={() => setIsToFocused(false)}
       />
       {tripReady ? "dildo" : "clihhh"}
-
+      <Clock />{" "}
       {isFromFocused && stopsFrom.length > 0 && (
         <div
           className={styles.dropdown}
-          onMouseDown={(e) => e.preventDefault()} // Prevents blur!
+          onMouseDown={(e) => e.preventDefault()}
         >
           {stopsFrom.map((s) => (
             <div
@@ -70,7 +71,7 @@ const Menu = () => {
                   { lon: s.lat, lat: s.lon },
                   { type: "stop", name: s.name, stopId: s.id },
                 );
-                setIsFromFocused(false); // Manually close dropdown
+                setIsFromFocused(false);
               }}
             >
               {s.name} {s.lines.join(" ")}
@@ -78,7 +79,6 @@ const Menu = () => {
           ))}
         </div>
       )}
-
       {isToFocused && stopsTo.length > 0 && (
         <div
           className={styles.dropdown}

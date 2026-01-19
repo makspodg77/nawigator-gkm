@@ -6,17 +6,17 @@ import { TimeProvider } from "./contexts/timeContext";
 import { TripProvider } from "./contexts/tripContext";
 import Main from "./pages/main";
 
-const formatTime = (date: Date) => {
-  const h = date.getHours();
-  const m = date.getMinutes();
-
+const formatTime = (h: number, m: number) => {
   return h * 60 + m;
 };
 
 function App() {
   const [initialized, setInitialized] = useState(false);
   const [stops, setStops] = useState<StopGroup[]>([]);
-  const initialTime = useMemo(() => formatTime(new Date()), []);
+  const initialTime = useMemo(
+    () => formatTime(new Date().getHours(), new Date().getMinutes()),
+    [],
+  );
 
   useEffect(() => {
     const initialize = async () => {
