@@ -1,4 +1,3 @@
-import { getPreciseDistance } from "geolib";
 import { executeQuery } from "../utils/sqlHelper";
 import { initializeRouter } from "./csa";
 import RBush from "rbush";
@@ -15,12 +14,13 @@ import {
   Connections,
   RideConnection,
   IRouteGeometry,
+  StopGroup,
 } from "../models/preprocessModels";
 
 const CONFIG = {
   WALK_LIMIT_METERS: 3000,
   WALK_SPEED_METERS_PER_MIN: 80,
-  TRANSFER_MINUTES: 2,
+  TRANSFER_MINUTES: 1,
   SPATIAL_RADIUS_KM: 2,
 };
 
@@ -57,6 +57,7 @@ class SpatialIndex {
 export const preprocess = async () => {
   const [
     rawStops,
+    rawStopGroups,
     rawLines,
     rawLineTypes,
     rawRoutes,
@@ -69,6 +70,7 @@ export const preprocess = async () => {
     executeQuery<any>(
       `SELECT s.id, s.alias, sg.name as "groupName", s.stop_group_id as "groupId", split_part(s.map, ',', 1) as lat, split_part(s.map, ',', 2) as lon FROM stop s JOIN stop_group sg ON sg.id = s.stop_group_id`,
     ),
+    executeQuery<any>(`SELECT * FROM stop_group`),
     executeQuery<any>(
       'SELECT id, name, line_type_id as "lineTypeId" FROM line',
     ),
@@ -101,6 +103,11 @@ export const preprocess = async () => {
     groupId: Number(s.groupId),
     lat: Number(s.lat),
     lon: Number(s.lon),
+  }));
+
+  const stopGroups: StopGroup[] = rawStopGroups.map((sg) => ({
+    ...sg,
+    id: Number(sg.id),
   }));
   const lines: Line[] = rawLines.map((l) => ({
     ...l,
@@ -171,6 +178,56 @@ export const preprocess = async () => {
     times.push(t.departureTime);
     return acc;
   }, new Map<number, number[]>());
+
+  const linesAtStopGroup = stops.reduce((acc, s) => {
+    let lines = acc.get(s.groupId);
+
+    if (!lines) {
+      lines = new Set();
+      acc.set(s.groupId, lines);
+    }
+
+    const routeIds = [
+      ...new Set(
+        fullRoutes.filter((fr) => fr.stopId === s.id).map((fr) => fr.routeId),
+      ),
+    ];
+    let lineIds: number[] = [];
+
+    routeIds.forEach((ri) => {
+      const lineId = routes.find((r) => r.id === ri)?.lineId;
+      if (lineId !== undefined) {
+        lineIds.push(lineId);
+      }
+    });
+    lineIds.forEach((li) => {
+      const name = lineMap.get(li)?.name;
+      if (name) {
+        lines.add(name);
+      }
+    });
+    return acc;
+  }, new Map<number, Set<string>>());
+
+  const meanStopGroupLocation = Array.from(
+    stops.reduce((acc, stop) => {
+      if (!acc.has(stop.groupId)) {
+        acc.set(stop.groupId, { latSum: 0, lonSum: 0, count: 0 });
+      }
+      const group = acc.get(stop.groupId)!;
+
+      group.latSum += stop.lat;
+      group.lonSum += stop.lon;
+      group.count += 1;
+      return acc;
+    }, new Map<number, { latSum: number; lonSum: number; count: number }>()),
+  ).reduce((result, [groupId, data]) => {
+    result.set(groupId, {
+      lat: data.latSum / data.count,
+      lon: data.lonSum / data.count,
+    });
+    return result;
+  }, new Map<number, { lat: number; lon: number }>());
 
   const additionalByDep = additionalStops.reduce((acc, a) => {
     if (!acc.has(a.routeId)) acc.set(a.routeId, new Set());
@@ -258,29 +315,6 @@ export const preprocess = async () => {
         } as any);
       }
     });
-
-    spatial.getNearby(stop.lon, stop.lat).forEach((neighbor) => {
-      if (neighbor.stopId === stop.id) return;
-
-      if (stopInfo.get(neighbor.stopId)?.groupId === stop.groupId) return;
-
-      const dist = getPreciseDistance(
-        { lat: stop.lat, lon: stop.lon },
-        { lat: neighbor.lat, lon: neighbor.lon },
-      );
-
-      if (dist <= CONFIG.WALK_LIMIT_METERS) {
-        const walkTimeMinutes = Math.ceil(
-          dist / CONFIG.WALK_SPEED_METERS_PER_MIN,
-        );
-
-        connections.get(stop.id)?.transfers.push({
-          to: neighbor.stopId,
-          transferTime: walkTimeMinutes,
-          type: "inter-group",
-        } as any);
-      }
-    });
   }
 
   initializeRouter(connections, stopsByGroup);
@@ -294,5 +328,8 @@ export const preprocess = async () => {
     depRoutes,
     additionalByDep,
     routeGeometryByDep,
+    stopGroups,
+    linesAtStopGroup,
+    meanStopGroupLocation,
   };
 };

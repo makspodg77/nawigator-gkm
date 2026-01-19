@@ -62,7 +62,7 @@ export async function populateRoutes(
     formattedDeparture: formatTime(segment.departure),
     formattedArrival: formatTime(segment.arrival),
     stopsBetween: stopsBetween,
-    coords: routeGeometry.map((g) => ({
+    geometryPoints: routeGeometry.map((g) => ({
       lat: g.lat,
       lon: g.lon,
     })),

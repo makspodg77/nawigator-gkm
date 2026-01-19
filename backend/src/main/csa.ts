@@ -85,7 +85,7 @@ export async function csaCoordinateRouting(
   // look for closest stop to given coords
   const originStops = await findNearbyStops(lat1, lon1, stopInfo);
   const destStops = await findNearbyStops(lat2, lon2, stopInfo);
-  console.log(destStops);
+
   // safety check if any stops were found
   if (originStops.length === 0 || destStops.length === 0) {
     return {
@@ -121,8 +121,6 @@ export async function csaCoordinateRouting(
         routeGeometryByDep,
       );
 
-      const transitTime = route.arrival - route.actualDeparture;
-      const totalWalk = route.initialWalk + route.finalWalk;
       const weightedScore = calculateRouteScore(route);
 
       return {
@@ -139,60 +137,13 @@ export async function csaCoordinateRouting(
         transfers: route.transfers,
         weightedScore,
         segments,
-        summary: {
-          totalWalkTime: totalWalk,
-          totalTransitTime: transitTime,
-          legs: segments.filter((s) => s && s.type === "transit").length,
-          initialWalk:
-            route.initialWalk > 0
-              ? `${route.initialWalk}min (${Math.round(
-                  route.initialWalkDistance,
-                )}m)`
-              : "None",
-          finalWalk:
-            route.finalWalk > 0
-              ? `${route.finalWalk}min (${Math.round(
-                  route.finalWalkDistance,
-                )}m)`
-              : "None",
-        },
       };
     }),
   );
 
-  return {
-    success: true,
-    routes: formattedRoutes.sort((a, b) => a.weightedScore - b.weightedScore),
-    metadata: {
-      origin: {
-        lat: lat1,
-        lon: lon1,
-        nearbyStops: originStops.length,
-        closestStop: originStops[0]
-          ? {
-              id: originStops[0].stopId,
-              name: getStopName(originStops[0].stopId, stopInfo),
-              distance: originStops[0].distance,
-              walkTime: originStops[0].walkTime,
-            }
-          : null,
-      },
-      destination: {
-        lat: lat2,
-        lon: lon2,
-        nearbyStops: destStops.length,
-        closestStop: destStops[0]
-          ? {
-              id: destStops[0].stopId,
-              name: getStopName(destStops[0].stopId, stopInfo),
-              distance: destStops[0].distance,
-              walkTime: destStops[0].walkTime,
-            }
-          : null,
-      },
-      routesFound: formattedRoutes.length,
-    },
-  };
+  return formattedRoutes.sort(
+    (a, b) => a.departureMinutes - b.departureMinutes,
+  );
 }
 
 // Optimize connectionScanAllDay
@@ -321,7 +272,7 @@ function scanWindow(
   for (let i = startIndex; i < allConnections.length; i++) {
     const conn = allConnections[i]; // every possible connection
 
-    if (conn.departure > windowStart + 300) break; // 5 hours max
+    if (conn.departure > windowStart + 240) break; // 4 hours max
 
     const fromReachTime = reachable[conn.fromStop];
 
@@ -639,7 +590,7 @@ const SCORING_CONFIG = {
   WALK_RELUCTANCE: 2.5,
   WAIT_RELUCTANCE: 1.5,
 
-  TRANSFER_FIXED_PENALTY: 25,
+  TRANSFER_FIXED_PENALTY: 125,
 
   RISK_THRESHOLD_MIN: 4,
   RISK_EXPONENT_FACTOR: 30,
@@ -716,13 +667,6 @@ function calculateRouteScore(route: IRoute): number {
 
       const transferDuration = Math.max(0, gap);
       transferWaitTime += transferDuration;
-
-      if (transferDuration < SCORING_CONFIG.RISK_THRESHOLD_MIN) {
-        riskPenalty +=
-          Math.pow(SCORING_CONFIG.RISK_THRESHOLD_MIN - transferDuration, 2) * 2;
-
-        if (transferDuration < 1) riskPenalty += 100;
-      }
     }
   }
 
