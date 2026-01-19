@@ -5,6 +5,7 @@ import { StopsContext, type StopGroup } from "./contexts/stopContext";
 import { TimeProvider } from "./contexts/timeContext";
 import { TripProvider } from "./contexts/tripContext";
 import Main from "./pages/main";
+import { SearchProvider } from "./contexts/searchbarContex";
 
 const formatTime = (h: number, m: number) => {
   return h * 60 + m;
@@ -47,11 +48,13 @@ function App() {
 
   return (
     <TimeProvider initialTime={initialTime}>
-      <TripProvider>
-        <StopsContext value={stops}>
-          <Main />
-        </StopsContext>
-      </TripProvider>
+      <SearchProvider>
+        <TripProvider>
+          <StopsContext value={stops}>
+            <Main />
+          </StopsContext>
+        </TripProvider>
+      </SearchProvider>
     </TimeProvider>
   );
 }

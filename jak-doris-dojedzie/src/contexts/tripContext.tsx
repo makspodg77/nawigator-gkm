@@ -6,6 +6,7 @@ export type LocationSource =
   | { type: "map" }
   | { type: "stop"; name: string; stopId: number };
 
+const TripContext = createContext<Trip | undefined>(undefined);
 type Trip = {
   start: Coordinates | null;
   end: Coordinates | null;
@@ -13,9 +14,10 @@ type Trip = {
   endSource: LocationSource;
   setStart: (coords: Coordinates, source: LocationSource) => void;
   setEnd: (coords: Coordinates, source: LocationSource) => void;
+  resetStart: () => void;
+  resetEnd: () => void;
   tripReady: boolean;
 };
-const TripContext = createContext<Trip | undefined>(undefined);
 
 export const TripProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -37,6 +39,16 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({
     setEndSource(source);
   };
 
+  const resetStart = () => {
+    setStartCoords(null);
+    setStartSource({ type: "none" });
+  };
+
+  const resetEnd = () => {
+    setEndCoords(null);
+    setEndSource({ type: "none" });
+  };
+
   const tripReady = start !== null && end !== null;
 
   return (
@@ -48,6 +60,8 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({
         endSource,
         setStart,
         setEnd,
+        resetStart,
+        resetEnd,
         tripReady,
       }}
     >
