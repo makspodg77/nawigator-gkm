@@ -1,6 +1,14 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  type ReactNode,
+} from "react";
+import { useTrip } from "./tripContext";
+import { useTime } from "./timeContext";
 
-type WalkSegment = {
+export type WalkSegment = {
   type: "walk";
   from: string | number;
   to: string | number;
@@ -12,7 +20,7 @@ type WalkSegment = {
 
 export type Coordinates = { lat: number; lon: number };
 
-type TransitSegment = {
+export type TransitSegment = {
   type: "transit";
   from: number;
   to: number;
@@ -54,12 +62,8 @@ export type Route = {
 
 type RoutesContextType = {
   routes: Route[] | null;
-  fetchRoutes: (
-    from: { lat: number; lon: number },
-    to: { lat: number; lon: number },
-    fromTime: number,
-    toTime: number,
-  ) => Promise<void>;
+  fetchRoutes: () => Promise<void>;
+  resetRoutes: () => void;
   isLoading: boolean;
   error: string | null;
 };
@@ -71,15 +75,18 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
   const [routes, setRoutes] = useState<Route[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { start, end } = useTrip();
+  const { time } = useTime();
 
-  const fetchRoutes = async (
-    from: Coordinates,
-    to: Coordinates,
-    fromTime: number,
-    toTime: number,
-  ) => {
+  const fetchRoutes = useCallback(async () => {
+    if (!start || !end) {
+      console.warn("Cannot fetch routes: Start or End is missing");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
+
     try {
       const response = await fetch("http://localhost:2137/csa-route", {
         method: "POST",
@@ -87,12 +94,12 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          lat1: from.lat,
-          lon1: from.lon,
-          lat2: to.lat,
-          lon2: to.lon,
-          startTime: fromTime,
-          endTime: toTime,
+          lat1: start.lon,
+          lon1: start.lat,
+          lat2: end.lon,
+          lon2: end.lat,
+          startTime: time,
+          endTime: time + 120,
         }),
       });
 
@@ -101,6 +108,7 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
       }
 
       const data: Route[] = await response.json();
+      console.log(data);
       setRoutes(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -108,10 +116,14 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [start, end, time]);
+
+  const resetRoutes = () => setRoutes(null);
 
   return (
-    <RoutesContext.Provider value={{ routes, fetchRoutes, isLoading, error }}>
+    <RoutesContext.Provider
+      value={{ routes, fetchRoutes, isLoading, error, resetRoutes }}
+    >
       {children}
     </RoutesContext.Provider>
   );

@@ -4,7 +4,8 @@ import { useTrip, type LocationSource } from "../../../../contexts/tripContext";
 import Clock from "../../../clock/clock";
 import Searchbar from "../../../searchbar/searchbar";
 import StopList from "../../../stopList/stopList";
-import type { Coordinates } from "../../../../contexts/routeContext";
+import { useRoutes, type Coordinates } from "../../../../contexts/routeContext";
+import { useMenu } from "../../../../contexts/menuContext";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const getDisplayValue = (source: LocationSource) => {
@@ -16,6 +17,7 @@ export const getDisplayValue = (source: LocationSource) => {
 
 const InitialMenuState = () => {
   const { tripReady, resetEnd, resetStart } = useTrip();
+  const { setMenu } = useMenu();
   const {
     valueFrom,
     valueTo,
@@ -29,6 +31,8 @@ const InitialMenuState = () => {
   const { startSource, endSource, setStart, setEnd } = useTrip();
   const fromRef = useRef<HTMLInputElement>(null);
   const toRef = useRef<HTMLInputElement>(null);
+  const { resetRoutes } = useRoutes();
+  resetRoutes();
 
   useEffect(() => {
     setValueFrom(getDisplayValue(startSource));
@@ -82,7 +86,7 @@ const InitialMenuState = () => {
       {!isFromFocused && !isToFocused ? <Clock /> : ""}
 
       {!isFromFocused && !isToFocused && tripReady ? (
-        <button>Szukaj</button>
+        <button onClick={() => setMenu(2)}>Szukaj</button>
       ) : (
         ""
       )}

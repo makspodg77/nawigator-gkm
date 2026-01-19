@@ -7,6 +7,7 @@ import Main from "./pages/main";
 import { SearchProvider } from "./contexts/searchbarContex";
 import { MenuProvider } from "./contexts/menuContext";
 import { timeStringToMinutes } from "./components/clock/clock";
+import { RoutesProvider } from "./contexts/routeContext";
 
 function App() {
   const [stops, setStops] = useState<StopGroup[]>([]);
@@ -45,13 +46,15 @@ function App() {
   return (
     <MenuProvider>
       <TimeProvider initialTime={initialTime}>
-        <SearchProvider>
-          <TripProvider>
-            <StopsContext value={stops}>
-              <Main />
-            </StopsContext>
-          </TripProvider>
-        </SearchProvider>
+        <TripProvider>
+          <RoutesProvider>
+            <SearchProvider>
+              <StopsContext value={stops}>
+                <Main />
+              </StopsContext>
+            </SearchProvider>
+          </RoutesProvider>
+        </TripProvider>
       </TimeProvider>
     </MenuProvider>
   );

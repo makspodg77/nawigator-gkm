@@ -165,8 +165,8 @@ function connectionScanAllDay(
   const fullSchedule = cachedSortedConnections;
   let globalStartIndex = binarySearchStartIndex(fullSchedule, startTime);
 
-  // look for best connections in 10 minutes windows
-  const SCAN_WINDOW = 10;
+  // look for best connections in 20 minutes windows
+  const SCAN_WINDOW = 20;
   const allRoutes: IRoute[] = [];
 
   // sort origin stops by walk time
@@ -182,7 +182,7 @@ function connectionScanAllDay(
       // fast lookup to skip as many impossible connections as possible
       let windowStartIndex = binarySearchStartIndex(
         fullSchedule,
-        windowStart,
+        windowStart - 20,
         globalStartIndex,
       );
 
@@ -610,12 +610,6 @@ function filterAndDeduplicateRoutes(routes: IRoute[]) {
   }));
 
   scoredRoutes.sort((a, b) => a.score - b.score);
-  const bestScore = scoredRoutes[0].score;
-
-  // filter out bad scores
-  const filteredRoutes = scoredRoutes.filter(
-    (route) => route.score <= bestScore * 1.5,
-  );
 
   // deduplication algorithm
   const seenKeys = new Set();
@@ -624,7 +618,7 @@ function filterAndDeduplicateRoutes(routes: IRoute[]) {
   const seenLegs = new Set();
   const result = [];
 
-  for (const { route } of filteredRoutes) {
+  for (const { route } of scoredRoutes) {
     if (seenKeys.has(route.key)) continue;
     if (seenDepartures.has(route.actualDeparture)) continue;
     if (seenArrivals.has(route.arrival)) continue;
