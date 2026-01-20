@@ -18,7 +18,7 @@ import { populateRoutes } from "./populateRoutes";
 
 let cachedSortedConnections: Connection[] = [];
 const WALK_SPEED = 80; // meters per minute
-const MAX_WALK_TIME = 12; // minutes
+const MAX_WALK_TIME = 11; // minutes
 const MAX_WALK_DISTANCE = MAX_WALK_TIME * WALK_SPEED; // 960 meters
 
 /**
@@ -588,7 +588,7 @@ function reconstructRouteFromJourney(
 }
 const SCORING_CONFIG = {
   WALK_RELUCTANCE: 2.5,
-  WAIT_RELUCTANCE: 3,
+  WAIT_RELUCTANCE: 0,
 
   TRANSFER_FIXED_PENALTY: 125,
 
