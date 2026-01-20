@@ -10,10 +10,42 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import styles from "./map.module.css";
 import "leaflet/dist/leaflet.css";
+import { useRoutes } from "../../contexts/routeContext";
+import L from "leaflet";
+import { useHoveredRoute } from "../../contexts/hoveredRouteContext";
 
+const darkenColor = (hex: string, percent: number) => {
+  if (!hex) return "#000000";
+  let color = hex.replace(/^#/, "");
+
+  if (color.length === 3) {
+    color = color
+      .split("")
+      .map((c) => c + c)
+      .join("");
+  }
+
+  const num = parseInt(color, 16);
+  const amt = Math.round(2.55 * percent);
+  const R = (num >> 16) - amt;
+  const G = ((num >> 8) & 0x00ff) - amt;
+  const B = (num & 0x0000ff) - amt;
+
+  return `#${(
+    0x1000000 +
+    (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+    (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+    (B < 255 ? (B < 1 ? 0 : B) : 255)
+  )
+    .toString(16)
+    .slice(1)}`;
+};
 function MapClickHandler() {
   const { setStart, setEnd } = useTrip();
   const map = useMap();
+  const { routes } = useRoutes();
+  const { hovered } = useHoveredRoute();
+
   const [clickedPosition, setClickedPosition] = useState<{
     lat: number;
     lon: number;
@@ -21,6 +53,40 @@ function MapClickHandler() {
     y: number;
   } | null>(null);
 
+  useEffect(() => {
+    if (!map || !routes) return;
+
+    const pathGroup = L.layerGroup().addTo(map);
+
+    routes.forEach((route) => {
+      route.segments.forEach((segment) => {
+        if (segment.type === "transit" && segment.geometryPoints) {
+          const latLons = segment.geometryPoints.map(
+            (gp) => [gp.lat, gp.lon] as L.LatLngExpression,
+          );
+          new L.Polyline(latLons, {
+            color: darkenColor(segment.lineColor, 40),
+            weight: 6,
+            opacity: route.key === hovered ? 0.8 : 0.1,
+            lineJoin: "round",
+            lineCap: "round",
+          }).addTo(pathGroup);
+
+          new L.Polyline(latLons, {
+            color: segment.lineColor,
+            weight: 5,
+            opacity: route.key === hovered ? 1 : 0.2,
+            lineJoin: "round",
+            lineCap: "round",
+          }).addTo(pathGroup);
+        }
+      });
+    });
+
+    return () => {
+      map.removeLayer(pathGroup);
+    };
+  }, [routes, map, hovered]);
   useEffect(() => {
     if (clickedPosition) {
       map.dragging.disable();
@@ -97,7 +163,7 @@ const Map = ({ children }: { children?: ReactNode }) => {
         style={{ height: "100vh", width: "100%" }}
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          url="http://{s}.tile.osm.org/{z}/{x}/{y}.png"
           attribution="&copy; OpenStreetMap &copy; CARTO"
         />
         {start ? <Marker position={{ lat: start.lat, lng: start.lon }} /> : ""}

@@ -60,6 +60,7 @@ const InitialMenuState = () => {
 
   return (
     <>
+      <button>back</button>
       <Searchbar
         ref={fromRef}
         placeholder="Skąd jedziemy?"

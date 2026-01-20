@@ -8,6 +8,7 @@ import { SearchProvider } from "./contexts/searchbarContex";
 import { MenuProvider } from "./contexts/menuContext";
 import { timeStringToMinutes } from "./components/clock/clock";
 import { RoutesProvider } from "./contexts/routeContext";
+import { HoveredRouteProvider } from "./contexts/hoveredRouteContext";
 
 function App() {
   const [stops, setStops] = useState<StopGroup[]>([]);
@@ -50,7 +51,9 @@ function App() {
           <RoutesProvider>
             <SearchProvider>
               <StopsContext value={stops}>
-                <Main />
+                <HoveredRouteProvider>
+                  <Main />
+                </HoveredRouteProvider>
               </StopsContext>
             </SearchProvider>
           </RoutesProvider>

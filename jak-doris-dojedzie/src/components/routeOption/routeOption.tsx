@@ -1,10 +1,48 @@
-import type { Route } from "../../contexts/routeContext";
+import { useHoveredRoute } from "../../contexts/hoveredRouteContext";
+import type {
+  Route,
+  TransitSegment,
+  WalkSegment,
+} from "../../contexts/routeContext";
+import { useTrip } from "../../contexts/tripContext";
 
 const RouteOption = ({ route }: { route: Route }) => {
-  const firstTransitSegment = route.segments[1];
-  const lastTransitSegment = route.segments[route.segments.length - 2];
+  const { setHovered } = useHoveredRoute();
+  let segments: (WalkSegment | TransitSegment)[] = [...route.segments];
+
+  const { startSource, endSource } = useTrip();
+
+  const initialWalkSegment =
+    segments[0].type === "walk" && segments[0].duration > 1
+      ? segments[0]
+      : undefined;
+
+  const finalWalkSegment =
+    segments[segments.length - 1].type === "walk" &&
+    segments[segments.length - 1].duration > 1
+      ? segments[segments.length - 1]
+      : undefined;
+
+  if (startSource.type === "stop" && segments[0]?.type === "walk") {
+    segments = segments.slice(1);
+  }
+
+  if (
+    endSource.type === "stop" &&
+    segments[segments.length - 1]?.type === "walk"
+  ) {
+    segments = segments.slice(0, -1);
+  }
+
+  const transitSegments = segments.filter(
+    (s): s is TransitSegment => s.type === "transit",
+  );
+
   return (
-    <div>
+    <div
+      onMouseEnter={() => setHovered(route.key)}
+      onMouseLeave={() => setHovered(null)}
+    >
       <h2>{route.departure}</h2>
       <h3>
         {route.segments.map((segment) =>
@@ -14,20 +52,13 @@ const RouteOption = ({ route }: { route: Route }) => {
         {route.duration + " min "}
       </h3>
       <h4>
-        {route.segments[0].duration > 1 ? route.segments[0].duration : ""} min{" "}
-        {firstTransitSegment.type === "transit"
-          ? firstTransitSegment.formattedDeparture
-          : ""}{" "}
-        {firstTransitSegment.type === "transit" &&
-        lastTransitSegment.type === "transit"
-          ? lastTransitSegment.arrival - firstTransitSegment.departure + " min "
-          : "null"}
-        {lastTransitSegment.type === "transit"
-          ? lastTransitSegment.formattedArrival + " "
-          : ""}
-        {route.segments[route.segments.length - 1].duration > 1
-          ? route.segments[route.segments.length - 1].duration + " min "
-          : ""}
+        {initialWalkSegment ? initialWalkSegment.duration + "min " : ""}
+        {transitSegments[0].formattedDeparture}{" "}
+        {transitSegments[transitSegments.length - 1].arrival -
+          transitSegments[0].departure +
+          " min "}
+        {transitSegments[transitSegments.length - 1].formattedArrival + " "}
+        {finalWalkSegment ? finalWalkSegment.duration + "min " : ""}
       </h4>
     </div>
   );

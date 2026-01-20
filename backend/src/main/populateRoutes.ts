@@ -23,10 +23,10 @@ export async function populateRoutes(
   const unfilteredRoute = fullRoutesByRoute.get(routeId);
   if (!unfilteredRoute) return segment;
 
-  const fullRoute = unfilteredRoute.filter(
+  let fullRoute = unfilteredRoute.filter(
     (fr) => !fr.isOptional || additionalStops?.has(fr.stopNumber),
   );
-
+  fullRoute = fullRoute.map((fr, idx) => ({ ...fr, stopNumber: idx + 1 }));
   if (!fullRoute) return segment;
 
   const from = fullRoute.findIndex((fr) => fr.stopId === segment.from);
@@ -41,10 +41,16 @@ export async function populateRoutes(
 
   const allGeometry = routeGeometryByDep.get(segment.routeId) || [];
   const sortedGeometry = allGeometry.sort((a, b) => a.id - b.id);
+  let shouldSave = false;
+  const routeGeometry = sortedGeometry.filter((g) => {
+    if (g.stopNumber === fromStopNumber) shouldSave = true;
 
-  const routeGeometry = sortedGeometry.filter(
-    (g) => g.stopNumber >= fromStopNumber && g.stopNumber <= toStopNumber,
-  );
+    const result = shouldSave;
+
+    if (g.stopNumber === toStopNumber) shouldSave = false;
+
+    return result;
+  });
 
   let departureTime = segment.departure;
   const stopsBetween = fullRoute.slice(from + 1, to).map((stop) => {

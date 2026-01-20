@@ -293,7 +293,7 @@ export const preprocess = async () => {
             key: `${line.name}-${t}-${depRoute.id}`,
           })),
           lineName: line.name,
-          lineColor: depRoute.color || "#000000",
+          lineColor: lineTypeMap.get(line.lineTypeId)?.color || "#000000",
           isNight: route.isNight,
           depRouteId: depRoute.id,
         } as RideConnection);
