@@ -39,10 +39,7 @@ const RouteOption = ({ route }: { route: Route }) => {
   );
 
   return (
-    <div
-      onMouseEnter={() => setHovered(route.key)}
-      onMouseLeave={() => setHovered(null)}
-    >
+    <div onMouseEnter={() => setHovered(route.key)}>
       <h2>{route.departure}</h2>
       <h3>
         {route.segments.map((segment) =>

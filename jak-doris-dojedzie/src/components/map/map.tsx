@@ -41,7 +41,7 @@ const darkenColor = (hex: string, percent: number) => {
     .slice(1)}`;
 };
 function MapClickHandler() {
-  const { setStart, setEnd } = useTrip();
+  const { setStart, start, setEnd, end } = useTrip();
   const map = useMap();
   const { routes } = useRoutes();
   const { hovered } = useHoveredRoute();
@@ -59,15 +59,28 @@ function MapClickHandler() {
     const pathGroup = L.layerGroup().addTo(map);
 
     routes.forEach((route) => {
+      let firstTransit = true;
+      let lastLatLon: L.LatLngExpression | undefined = null;
       route.segments.forEach((segment) => {
         if (segment.type === "transit" && segment.geometryPoints) {
           const latLons = segment.geometryPoints.map(
             (gp) => [gp.lat, gp.lon] as L.LatLngExpression,
           );
+          lastLatLon = latLons.at(-1);
+          if (start && firstTransit) {
+            new L.Polyline([latLons[0], [start?.lat, start?.lon]], {
+              color: "#555555",
+              weight: 4,
+              opacity: route.key === hovered ? 0.8 : 0.02,
+              dashArray: "10, 10",
+            }).addTo(pathGroup);
+            firstTransit = false;
+          }
+
           new L.Polyline(latLons, {
-            color: darkenColor(segment.lineColor, 40),
+            color: darkenColor(segment.lineColor, 25),
             weight: 6,
-            opacity: route.key === hovered ? 0.8 : 0.1,
+            opacity: route.key === hovered ? 0.8 : 0.02,
             lineJoin: "round",
             lineCap: "round",
           }).addTo(pathGroup);
@@ -75,12 +88,20 @@ function MapClickHandler() {
           new L.Polyline(latLons, {
             color: segment.lineColor,
             weight: 5,
-            opacity: route.key === hovered ? 1 : 0.2,
+            opacity: route.key === hovered ? 1 : 0.05,
             lineJoin: "round",
             lineCap: "round",
           }).addTo(pathGroup);
         }
       });
+      if (lastLatLon && end) {
+        new L.Polyline([lastLatLon, [end?.lat, end?.lon]], {
+          color: "#555555",
+          weight: 4,
+          opacity: route.key === hovered ? 0.8 : 0.02,
+          dashArray: "10, 10",
+        }).addTo(pathGroup);
+      }
     });
 
     return () => {

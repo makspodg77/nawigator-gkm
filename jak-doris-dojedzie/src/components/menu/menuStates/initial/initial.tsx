@@ -60,7 +60,7 @@ const InitialMenuState = () => {
 
   return (
     <>
-      <button>back</button>
+      {isToFocused || isFromFocused ? <button>back</button> : ""}
       <Searchbar
         ref={fromRef}
         placeholder="Skąd jedziemy?"
