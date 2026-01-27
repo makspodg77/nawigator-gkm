@@ -2,14 +2,24 @@ import styles from "./menu.module.css";
 import InitialMenuState from "./menuStates/initial/initial";
 import FoundRoutesMenuState from "./menuStates/foundRoutes/foundRoutes";
 import { useMenu } from "../../contexts/menuContext";
+import ErrorMenuState from "./menuStates/error/error";
 
 const Menu = () => {
   const { menu } = useMenu();
-  return (
-    <div className={styles.menu}>
-      {menu === 1 ? <InitialMenuState /> : <FoundRoutesMenuState />}
-    </div>
-  );
-};
 
+  const renderMenu = () => {
+    switch (menu) {
+      case "INITIAL":
+        return <InitialMenuState />;
+      case "FOUND_ROUTES":
+        return <FoundRoutesMenuState />;
+      case "ERROR":
+        return <ErrorMenuState />;
+      default:
+        return null;
+    }
+  };
+
+  return <div className={styles.menu}>{renderMenu()}</div>;
+};
 export default Menu;

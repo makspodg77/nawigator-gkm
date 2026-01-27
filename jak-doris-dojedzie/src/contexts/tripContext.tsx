@@ -1,13 +1,14 @@
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import type { Coordinates } from "./routeContext";
-import { useMenu } from "./menuContext";
+
 export type LocationSource =
   | { type: "none" }
   | { type: "map" }
   | { type: "stop"; name: string; stopId: number };
 
-const TripContext = createContext<Trip | undefined>(undefined);
+const TripContext = createContext<Trip | null>(null);
+
 type Trip = {
   start: Coordinates | null;
   end: Coordinates | null;
@@ -29,29 +30,24 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({
     type: "none",
   });
   const [endSource, setEndSource] = useState<LocationSource>({ type: "none" });
-  const { setMenu } = useMenu();
   const setStart = (coords: Coordinates, source: LocationSource) => {
     setStartCoords(coords);
     setStartSource(source);
-    setMenu(1);
   };
 
   const setEnd = (coords: Coordinates, source: LocationSource) => {
     setEndCoords(coords);
     setEndSource(source);
-    setMenu(1);
   };
 
   const resetStart = () => {
     setStartCoords(null);
     setStartSource({ type: "none" });
-    setMenu(1);
   };
 
   const resetEnd = () => {
     setEndCoords(null);
     setEndSource({ type: "none" });
-    setMenu(1);
   };
 
   const tripReady = start !== null && end !== null;

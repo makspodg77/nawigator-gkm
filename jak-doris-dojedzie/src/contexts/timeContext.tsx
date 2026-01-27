@@ -2,32 +2,36 @@ import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 
 type TimeContextType = {
+  initialTime: number;
   time: number;
   setTime: (time: number) => void;
+  setInitialTime: (time: number) => void;
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const timeContext = createContext<TimeContextType | null>(null);
+export const TimeContext = createContext<TimeContextType | null>(null);
 
 export function TimeProvider({
   children,
-  initialTime,
+  initTime,
 }: {
   children: ReactNode;
-  initialTime: number;
+  initTime: number;
 }) {
-  const [time, setTime] = useState<number>(initialTime);
-
+  const [time, setTime] = useState<number>(initTime);
+  const [initialTime, setInitialTime] = useState<number>(initTime);
   return (
-    <timeContext.Provider value={{ time, setTime }}>
+    <TimeContext.Provider
+      value={{ time, setTime, initialTime, setInitialTime }}
+    >
       {children}
-    </timeContext.Provider>
+    </TimeContext.Provider>
   );
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useTime() {
-  const ctx = useContext(timeContext);
+  const ctx = useContext(TimeContext);
   if (!ctx) {
     throw new Error("useTime must be used inside TimeProvider");
   }

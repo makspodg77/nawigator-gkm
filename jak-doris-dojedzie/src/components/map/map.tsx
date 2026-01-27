@@ -13,6 +13,7 @@ import "leaflet/dist/leaflet.css";
 import { useRoutes } from "../../contexts/routeContext";
 import L from "leaflet";
 import { useHoveredRoute } from "../../contexts/hoveredRouteContext";
+import { useMenu } from "../../contexts/menuContext";
 
 const darkenColor = (hex: string, percent: number) => {
   if (!hex) return "#000000";
@@ -43,6 +44,7 @@ const darkenColor = (hex: string, percent: number) => {
 function MapClickHandler() {
   const { setStart, start, setEnd, end } = useTrip();
   const map = useMap();
+  const { setMenu } = useMenu();
   const { routes } = useRoutes();
   const { hovered } = useHoveredRoute();
 
@@ -155,6 +157,7 @@ function MapClickHandler() {
           onClick={() => {
             setStart(clickedPosition, { type: "map" });
             setClickedPosition(null);
+            setMenu("INITIAL");
           }}
         >
           Set as Start
@@ -163,6 +166,7 @@ function MapClickHandler() {
           onClick={() => {
             setEnd(clickedPosition, { type: "map" });
             setClickedPosition(null);
+            setMenu("INITIAL");
           }}
         >
           Set as End

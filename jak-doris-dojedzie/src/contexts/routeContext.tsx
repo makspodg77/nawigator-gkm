@@ -109,6 +109,11 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
 
       const data: Route[] = await response.json();
       console.log(data);
+      if (!Array.isArray(data)) {
+        setRoutes(null);
+        return;
+      }
+
       setRoutes(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");

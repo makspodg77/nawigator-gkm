@@ -1,17 +1,17 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 
+export type MenuState = "INITIAL" | "FOUND_ROUTES" | "LOADING" | "ERROR";
+
 type MenuContextType = {
-  menu: number;
-  setMenu: (value: number) => void;
+  menu: MenuState;
+  setMenu: (value: MenuState) => void;
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const MenuContext = createContext<MenuContextType | undefined>(
-  undefined,
-);
+export const MenuContext = createContext<MenuContextType | null>(null);
 
 export function MenuProvider({ children }: { children: ReactNode }) {
-  const [menu, setMenu] = useState(1);
+  const [menu, setMenu] = useState<MenuState>("INITIAL");
 
   return (
     <MenuContext.Provider value={{ menu, setMenu }}>

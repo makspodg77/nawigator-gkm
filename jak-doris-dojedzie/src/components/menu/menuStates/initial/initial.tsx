@@ -44,6 +44,7 @@ const InitialMenuState = () => {
 
   const handleFromSelect = (coords: Coordinates, source: LocationSource) => {
     setStart(coords, source);
+    setMenu("INITIAL");
     fromRef.current?.blur();
     if (endSource.type === "none") {
       toRef.current?.focus();
@@ -52,6 +53,7 @@ const InitialMenuState = () => {
 
   const handleToSelect = (coords: Coordinates, source: LocationSource) => {
     setEnd(coords, source);
+    setMenu("INITIAL");
     toRef.current?.blur();
     if (startSource.type === "none") {
       fromRef.current?.focus();
@@ -63,6 +65,7 @@ const InitialMenuState = () => {
       {isToFocused || isFromFocused ? <button>back</button> : ""}
       <Searchbar
         ref={fromRef}
+        setMenu={setMenu}
         placeholder="Skąd jedziemy?"
         value={valueFrom}
         setValue={setValueFrom}
@@ -71,6 +74,7 @@ const InitialMenuState = () => {
       />
       <Searchbar
         ref={toRef}
+        setMenu={setMenu}
         placeholder="Dokąd jedziemy?"
         value={valueTo}
         setValue={setValueTo}
@@ -87,7 +91,7 @@ const InitialMenuState = () => {
       {!isFromFocused && !isToFocused ? <Clock /> : ""}
 
       {!isFromFocused && !isToFocused && tripReady ? (
-        <button onClick={() => setMenu(2)}>Szukaj</button>
+        <button onClick={() => setMenu("FOUND_ROUTES")}>Szukaj</button>
       ) : (
         ""
       )}

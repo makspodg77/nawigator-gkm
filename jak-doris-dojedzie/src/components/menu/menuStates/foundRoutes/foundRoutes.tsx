@@ -7,20 +7,31 @@ import { useMenu } from "../../../../contexts/menuContext";
 
 const FoundRoutesMenuState = () => {
   const { startSource, endSource } = useTrip();
-  const { fetchRoutes, routes, isLoading } = useRoutes();
+  const { fetchRoutes, routes, isLoading, error } = useRoutes();
   const { setMenu } = useMenu();
+
   useEffect(() => {
     fetchRoutes();
   }, [fetchRoutes]);
 
+  useEffect(() => {
+    if (!isLoading && !routes && error) {
+      setMenu("ERROR");
+    }
+  }, [isLoading, routes, error, setMenu]);
+
   return (
     <>
-      <button onClick={() => setMenu(1)}>back</button>
+      <button onClick={() => setMenu("INITIAL")}>back</button>
       <h3>{getDisplayValue(startSource)}</h3>
       <h3>{getDisplayValue(endSource)}</h3>
-      {isLoading
-        ? "laduje sie kurwa"
-        : routes?.map((route) => <RouteOption route={route} />)}
+      {isLoading ? (
+        <p>Loading routes...</p>
+      ) : routes && routes.length > 0 ? (
+        routes.map((route) => <RouteOption key={route.key} route={route} />)
+      ) : (
+        <p>No routes found</p>
+      )}
     </>
   );
 };

@@ -6,9 +6,8 @@ type HoveredRouteContextType = {
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const HoveredRouteContext = createContext<
-  HoveredRouteContextType | undefined
->(undefined);
+export const HoveredRouteContext =
+  createContext<HoveredRouteContextType | null>(null);
 
 // Changed to HoveredRouteProvider to match the context name
 export function HoveredRouteProvider({ children }: { children: ReactNode }) {
