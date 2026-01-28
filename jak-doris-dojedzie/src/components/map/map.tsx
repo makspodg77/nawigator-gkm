@@ -102,10 +102,11 @@ function MapClickHandler() {
             lineCap: "round",
           }).addTo(pathGroup);
           const midpoint = getMidpoint(latLons);
-          const labelIcon = L.divIcon({
-            className: "",
-            html: [
-              `
+          if (midpoint) {
+            const labelIcon = L.divIcon({
+              className: "",
+              html: [
+                `
               <div style="
                 background-color: ${segment.lineColor || "#666666"};
                 color: white;
@@ -115,19 +116,20 @@ function MapClickHandler() {
                 font-weight: bold;
                 border: 1px solid ${darkenColor(segment.lineColor || "#666666", 10)};
                 opacity: `,
-              route.key === hovered ? "1" : "0",
-              `;
+                route.key === hovered ? "1" : "0",
+                `;
                 pointer-events: none;
               ">
                 ${segment.line}
               </div>
             `,
-            ].join(""),
-            iconSize: undefined,
-            iconAnchor: [0, 0],
-          });
+              ].join(""),
+              iconSize: undefined,
+              iconAnchor: [0, 0],
+            });
 
-          new L.Marker(midpoint, { icon: labelIcon }).addTo(labelGroup);
+            new L.Marker(midpoint, { icon: labelIcon }).addTo(labelGroup);
+          }
         }
       });
 

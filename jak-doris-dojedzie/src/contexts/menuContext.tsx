@@ -1,6 +1,11 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 
-export type MenuState = "INITIAL" | "FOUND_ROUTES" | "LOADING" | "ERROR";
+export type MenuState =
+  | "INITIAL"
+  | "FOUND_ROUTES"
+  | "LOADING"
+  | "ERROR"
+  | "CHOSEN_ROUTE";
 
 type MenuContextType = {
   menu: MenuState;

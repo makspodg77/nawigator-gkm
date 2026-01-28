@@ -27,7 +27,7 @@ const FoundRoutesMenuState = () => {
       <button onClick={() => setMenu("INITIAL")}>back</button>
       <h3>{getDisplayValue(startSource)}</h3>
       <h3>{getDisplayValue(endSource)}</h3>
-      <h4 onClick={getNewLowerBound}>szukaj przed..</h4>
+      <button onClick={getNewLowerBound}>szukaj przed..</button>
       {isLoading ? (
         <p>Loading routes...</p>
       ) : routes && routes.length > 0 ? (
@@ -35,7 +35,7 @@ const FoundRoutesMenuState = () => {
       ) : (
         <p>No routes found</p>
       )}
-      <h4 onClick={getNewUpperBound}>szukaj po..</h4>
+      <button onClick={getNewUpperBound}>szukaj po..</button>
     </>
   );
 };

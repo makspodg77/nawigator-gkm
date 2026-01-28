@@ -165,8 +165,8 @@ function connectionScanAllDay(
   const fullSchedule = cachedSortedConnections;
   let globalStartIndex = binarySearchStartIndex(fullSchedule, startTime);
 
-  // look for best connections in 20 minutes windows
-  const SCAN_WINDOW = 20;
+  // look for best connections in 10 minutes windows
+  const SCAN_WINDOW = 10;
   const allRoutes: IRoute[] = [];
 
   // sort origin stops by walk time
