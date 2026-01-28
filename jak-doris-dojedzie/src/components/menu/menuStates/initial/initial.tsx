@@ -6,6 +6,7 @@ import Searchbar from "../../../searchbar/searchbar";
 import StopList from "../../../stopList/stopList";
 import { useRoutes, type Coordinates } from "../../../../contexts/routeContext";
 import { useMenu } from "../../../../contexts/menuContext";
+import { useTime } from "../../../../contexts/timeContext";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const getDisplayValue = (source: LocationSource) => {
@@ -32,7 +33,15 @@ const InitialMenuState = () => {
   const fromRef = useRef<HTMLInputElement>(null);
   const toRef = useRef<HTMLInputElement>(null);
   const { resetRoutes } = useRoutes();
-  resetRoutes();
+  const { setInitialStartTime, initialStartTime } = useTime();
+
+  useEffect(() => {
+    setInitialStartTime(initialStartTime);
+  }, [setInitialStartTime, initialStartTime]);
+
+  useEffect(() => {
+    resetRoutes();
+  }, [resetRoutes]);
 
   useEffect(() => {
     setValueFrom(getDisplayValue(startSource));

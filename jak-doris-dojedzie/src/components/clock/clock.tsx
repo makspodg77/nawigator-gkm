@@ -14,13 +14,13 @@ export const timeStringToMinutes = (timeStr: string): number => {
 };
 
 const Clock = () => {
-  const { time, setTime } = useTime();
+  const { initialStartTime, setInitialStartTime } = useTime();
 
   return (
     <input
       type="time"
-      value={minutesToTimeString(time)}
-      onChange={(e) => setTime(timeStringToMinutes(e.target.value))}
+      value={minutesToTimeString(initialStartTime)}
+      onChange={(e) => setInitialStartTime(timeStringToMinutes(e.target.value))}
     />
   );
 };

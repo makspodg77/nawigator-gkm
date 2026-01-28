@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -62,7 +63,7 @@ export type Route = {
 
 type RoutesContextType = {
   routes: Route[] | null;
-  fetchRoutes: () => Promise<void>;
+  fetchRoutes: (append?: boolean) => Promise<void>;
   resetRoutes: () => void;
   isLoading: boolean;
   error: string | null;
@@ -76,52 +77,90 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { start, end } = useTrip();
-  const { time } = useTime();
+  const { startTime, endTime, timeWindow } = useTime();
 
-  const fetchRoutes = useCallback(async () => {
-    if (!start || !end) {
-      console.warn("Cannot fetch routes: Start or End is missing");
-      return;
-    }
+  const prevStartTime = useRef(startTime);
 
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch("http://localhost:2137/csa-route", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          lat1: start.lon,
-          lon1: start.lat,
-          lat2: end.lon,
-          lon2: end.lat,
-          startTime: time,
-          endTime: time + 120,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch routes");
-      }
-
-      const data: Route[] = await response.json();
-      console.log(data);
-      if (!Array.isArray(data)) {
-        setRoutes(null);
+  const fetchRoutes = useCallback(
+    async (append?: boolean) => {
+      if (!start || !end) {
+        console.warn("Cannot fetch routes: Start or End is missing");
         return;
       }
 
-      setRoutes(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-      setRoutes(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [start, end, time]);
+      setIsLoading(true);
+      setError(null);
+
+      const startTimeChanged = prevStartTime.current !== startTime;
+
+      let finalStartTime = startTime;
+      let finalEndTime = endTime;
+
+      if (startTimeChanged) {
+        finalEndTime = startTime + timeWindow;
+        console.log("doris");
+        if (finalEndTime > 1440) finalEndTime = 1440;
+      } else {
+        finalStartTime = endTime - timeWindow;
+
+        if (finalEndTime < 0) finalStartTime = 0;
+      }
+
+      try {
+        const response = await fetch("http://localhost:2137/csa-route", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            lat1: start.lon,
+            lon1: start.lat,
+            lat2: end.lon,
+            lon2: end.lat,
+            startTime: finalStartTime,
+            endTime: finalEndTime,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch routes");
+        }
+        console.log(finalStartTime, finalEndTime);
+        const data: Route[] = await response.json();
+
+        if (!Array.isArray(data)) {
+          setRoutes(null);
+          return;
+        }
+
+        if (append) {
+          setRoutes((prevRoutes) => {
+            if (!prevRoutes) return data;
+
+            const existingKeys = new Set(prevRoutes.map((r) => r.key));
+
+            const newRoutes = data.filter(
+              (route) => !existingKeys.has(route.key),
+            );
+
+            return [...prevRoutes, ...newRoutes].sort(
+              (a, b) => a.departureMinutes - b.departureMinutes,
+            );
+          });
+        } else {
+          setRoutes(data);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+        setRoutes(null);
+      } finally {
+        setIsLoading(false);
+      }
+      prevStartTime.current = startTime;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [start, end, startTime, endTime],
+  );
 
   const resetRoutes = () => setRoutes(null);
 

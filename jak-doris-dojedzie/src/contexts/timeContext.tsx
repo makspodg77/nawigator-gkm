@@ -2,10 +2,14 @@ import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 
 type TimeContextType = {
-  initialTime: number;
-  time: number;
-  setTime: (time: number) => void;
-  setInitialTime: (time: number) => void;
+  initialStartTime: number;
+  startTime: number;
+  endTime: number;
+  setInitialStartTime: (time: number) => void;
+  getNewLowerBound: () => void;
+  getNewUpperBound: () => void;
+  resetTime: () => void;
+  timeWindow: number;
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -18,11 +22,55 @@ export function TimeProvider({
   children: ReactNode;
   initTime: number;
 }) {
-  const [time, setTime] = useState<number>(initTime);
-  const [initialTime, setInitialTime] = useState<number>(initTime);
+  const timeWindow = 120;
+
+  const [initialStartTime, setInitialStartTimeState] =
+    useState<number>(initTime);
+  const [startTime, setStartTime] = useState<number>(initTime);
+  const [endTime, setEndTime] = useState<number>(() => {
+    const end = initTime + timeWindow;
+    return end > 1440 ? 1440 : end;
+  });
+
+  const setInitialStartTime = (time: number) => {
+    setInitialStartTimeState(time);
+    setStartTime(time);
+    let newEndTime = time + timeWindow;
+    if (newEndTime > 1440) newEndTime = 1440;
+    setEndTime(newEndTime);
+  };
+
+  const resetTime = () => {
+    setStartTime(initialStartTime);
+    let newEndTime = initialStartTime + timeWindow;
+    if (newEndTime > 1440) newEndTime = 1440;
+    setEndTime(newEndTime);
+  };
+
+  const getNewLowerBound = () => {
+    let newTime = startTime - timeWindow;
+    if (newTime < 0) newTime = 0;
+    setStartTime(newTime);
+  };
+
+  const getNewUpperBound = () => {
+    let newTime = endTime + timeWindow;
+    if (newTime > 1440) newTime = 1440;
+    setEndTime(newTime);
+  };
+
   return (
     <TimeContext.Provider
-      value={{ time, setTime, initialTime, setInitialTime }}
+      value={{
+        getNewUpperBound,
+        getNewLowerBound,
+        startTime,
+        timeWindow,
+        endTime,
+        initialStartTime,
+        setInitialStartTime,
+        resetTime,
+      }}
     >
       {children}
     </TimeContext.Provider>

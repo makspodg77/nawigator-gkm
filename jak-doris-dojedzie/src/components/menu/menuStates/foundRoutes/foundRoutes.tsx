@@ -4,15 +4,17 @@ import { useTrip } from "../../../../contexts/tripContext";
 import { getDisplayValue } from "../initial/initial";
 import RouteOption from "../../../routeOption/routeOption";
 import { useMenu } from "../../../../contexts/menuContext";
+import { useTime } from "../../../../contexts/timeContext";
 
 const FoundRoutesMenuState = () => {
   const { startSource, endSource } = useTrip();
   const { fetchRoutes, routes, isLoading, error } = useRoutes();
   const { setMenu } = useMenu();
+  const { getNewLowerBound, getNewUpperBound, startTime, endTime } = useTime();
 
   useEffect(() => {
-    fetchRoutes();
-  }, [fetchRoutes]);
+    fetchRoutes(true);
+  }, [startTime, endTime, fetchRoutes]);
 
   useEffect(() => {
     if (!isLoading && !routes && error) {
@@ -25,6 +27,7 @@ const FoundRoutesMenuState = () => {
       <button onClick={() => setMenu("INITIAL")}>back</button>
       <h3>{getDisplayValue(startSource)}</h3>
       <h3>{getDisplayValue(endSource)}</h3>
+      <h4 onClick={getNewLowerBound}>szukaj przed..</h4>
       {isLoading ? (
         <p>Loading routes...</p>
       ) : routes && routes.length > 0 ? (
@@ -32,6 +35,7 @@ const FoundRoutesMenuState = () => {
       ) : (
         <p>No routes found</p>
       )}
+      <h4 onClick={getNewUpperBound}>szukaj po..</h4>
     </>
   );
 };

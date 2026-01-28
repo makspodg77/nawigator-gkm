@@ -41,6 +41,12 @@ const darkenColor = (hex: string, percent: number) => {
     .toString(16)
     .slice(1)}`;
 };
+
+const getMidpoint = (points: L.LatLngExpression[]): L.LatLngExpression => {
+  const midIndex = Math.floor(points.length / 2);
+  return points[midIndex];
+};
+
 function MapClickHandler() {
   const { setStart, start, setEnd, end } = useTrip();
   const map = useMap();
@@ -59,10 +65,11 @@ function MapClickHandler() {
     if (!map || !routes) return;
 
     const pathGroup = L.layerGroup().addTo(map);
+    const labelGroup = L.layerGroup().addTo(map);
 
     routes.forEach((route) => {
       let firstTransit = true;
-      let lastLatLon: L.LatLngExpression | undefined = null;
+      let lastLatLon: L.LatLngExpression | undefined = undefined;
       route.segments.forEach((segment) => {
         if (segment.type === "transit" && segment.geometryPoints) {
           const latLons = segment.geometryPoints.map(
@@ -94,8 +101,36 @@ function MapClickHandler() {
             lineJoin: "round",
             lineCap: "round",
           }).addTo(pathGroup);
+          const midpoint = getMidpoint(latLons);
+          const labelIcon = L.divIcon({
+            className: "",
+            html: [
+              `
+              <div style="
+                background-color: ${segment.lineColor || "#666666"};
+                color: white;
+                padding: 2px 8px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: bold;
+                border: 1px solid ${darkenColor(segment.lineColor || "#666666", 10)};
+                opacity: `,
+              route.key === hovered ? "1" : "0",
+              `;
+                pointer-events: none;
+              ">
+                ${segment.line}
+              </div>
+            `,
+            ].join(""),
+            iconSize: undefined,
+            iconAnchor: [0, 0],
+          });
+
+          new L.Marker(midpoint, { icon: labelIcon }).addTo(labelGroup);
         }
       });
+
       if (lastLatLon && end) {
         new L.Polyline([lastLatLon, [end?.lat, end?.lon]], {
           color: "#555555",
@@ -108,8 +143,9 @@ function MapClickHandler() {
 
     return () => {
       map.removeLayer(pathGroup);
+      map.removeLayer(labelGroup);
     };
-  }, [routes, map, hovered]);
+  }, [routes, map, hovered, start, end]);
   useEffect(() => {
     if (clickedPosition) {
       map.dragging.disable();

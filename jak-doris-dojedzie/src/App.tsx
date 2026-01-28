@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
-import { StopsContext, type StopGroup } from "./contexts/stopContext";
+import { StopsProvider, type StopGroup } from "./contexts/stopContext";
 import { TimeProvider } from "./contexts/timeContext";
 import { TripProvider } from "./contexts/tripContext";
 import Main from "./pages/main";
@@ -46,15 +46,15 @@ function App() {
 
   return (
     <MenuProvider>
-      <TimeProvider initialTime={initialTime}>
+      <TimeProvider initTime={initialTime}>
         <TripProvider>
           <RoutesProvider>
             <SearchProvider>
-              <StopsContext value={stops}>
+              <StopsProvider stops={stops}>
                 <HoveredRouteProvider>
                   <Main />
                 </HoveredRouteProvider>
-              </StopsContext>
+              </StopsProvider>
             </SearchProvider>
           </RoutesProvider>
         </TripProvider>
