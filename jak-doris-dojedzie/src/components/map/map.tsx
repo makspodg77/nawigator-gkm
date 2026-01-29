@@ -80,7 +80,7 @@ function MapClickHandler() {
             new L.Polyline([latLons[0], [start?.lat, start?.lon]], {
               color: "#555555",
               weight: 4,
-              opacity: route.key === hovered ? 0.8 : 0.02,
+              opacity: route.key === hovered ? 0.8 : 0,
               dashArray: "10, 10",
             }).addTo(pathGroup);
             firstTransit = false;
@@ -89,7 +89,7 @@ function MapClickHandler() {
           new L.Polyline(latLons, {
             color: darkenColor(segment.lineColor, 25),
             weight: 6,
-            opacity: route.key === hovered ? 0.8 : 0.02,
+            opacity: route.key === hovered ? 0.8 : 0,
             lineJoin: "round",
             lineCap: "round",
           }).addTo(pathGroup);
@@ -97,7 +97,7 @@ function MapClickHandler() {
           new L.Polyline(latLons, {
             color: segment.lineColor,
             weight: 5,
-            opacity: route.key === hovered ? 1 : 0.05,
+            opacity: route.key === hovered ? 1 : 0,
             lineJoin: "round",
             lineCap: "round",
           }).addTo(pathGroup);
@@ -137,7 +137,7 @@ function MapClickHandler() {
         new L.Polyline([lastLatLon, [end?.lat, end?.lon]], {
           color: "#555555",
           weight: 4,
-          opacity: route.key === hovered ? 0.8 : 0.02,
+          opacity: route.key === hovered ? 0.8 : 0,
           dashArray: "10, 10",
         }).addTo(pathGroup);
       }
