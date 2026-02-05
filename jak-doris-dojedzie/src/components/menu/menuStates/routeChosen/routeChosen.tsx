@@ -65,14 +65,23 @@ const TransitSegmentComponent = ({ segment }: { segment: TransitSegment }) => {
   return (
     <>
       <div>
-        {segment.formattedDeparture}{"  "} {segment.fromName}
+        {segment.formattedDeparture}
+        {"  "} {segment.fromName}
       </div>
       <div>
-        {segment.line} -> {segment.directionName} {segment.duration} m
+        {segment.line} {"->"} {segment.directionName} {segment.duration} m
       </div>
       <div>{segment.stopsBetween.length + 1} stops</div>
-      <div>{segment.stopsBetween.map(sb => <div>{sb.name} {sb.departureTimeFormatted}</div>)}</div>
-      <div>{segment.formattedArrival} {segment.toName}</div>
+      <div>
+        {segment.stopsBetween.map((sb) => (
+          <div>
+            {sb.name} {sb.departureTimeFormatted}
+          </div>
+        ))}
+      </div>
+      <div>
+        {segment.formattedArrival} {segment.toName}
+      </div>
     </>
   );
 };

@@ -1,0 +1,61 @@
+.container {
+  width: 100%;
+  background-color: white;
+  display: flex;
+  border-radius: 12px;
+  justify-content: space-around;
+  align-items: center;
+  transition: all 0.4s ease;
+}
+
+input[type="text"] {
+  width: 80%;
+  height: 37px;
+  border: transparent;
+
+  font-size: 1rem;
+  line-height: 1.25rem;
+  letter-spacing: 0.025rem;
+  text-overflow: hidden;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.4s ease;
+}
+
+input:focus {
+  height: 49px;
+  outline: none;
+  line-height: 1.5rem;
+  letter-spacing: 0.0375rem;
+  text-overflow: unset;
+}
+
+.point,
+.action {
+  width: 10%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.action > * {
+  cursor: pointer;
+}
+
+.outerCircle {
+  width: 14px;
+  border-radius: 50%;
+  height: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.innerCircle {
+  width: 6px;
+  background-color: white;
+  border-radius: 50%;
+  height: 6px;
+  display: block;
+}

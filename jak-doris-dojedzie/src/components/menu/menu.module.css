@@ -1,9 +1,61 @@
 .menu {
-  max-width: 62.5rem;
-  min-height: 62.5rem;
-  padding: 1rem 2rem;
-  background-color: rgb(165, 184, 184);
+  width: min(350px, 95vw);
+  height: 60vh;
+  border-radius: 12px;
+  background-color: rgb(255, 255, 255);
   position: absolute;
+  top: 2%;
+  left: 1%;
+  z-index: 3;
+  overflow-y: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
 
-  z-index: 1000;
+.topPanel {
+  background-color: #056b89;
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+
+  .header {
+    color: white;
+    height: 30px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    > * {
+      color: white;
+      background-color: transparent;
+      outline: transparent;
+      border: transparent;
+      cursor: pointer;
+
+      > * {
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+}
+
+.divider {
+  height: 5px;
+}
+
+.searchButton {
+  width: 100%;
+  height: 50px;
+  font-size: large;
+  color: white;
+  background-color: #0a9f6b;
+  border: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 12px;
 }

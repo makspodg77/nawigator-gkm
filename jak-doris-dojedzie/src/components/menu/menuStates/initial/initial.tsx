@@ -7,14 +7,19 @@ import StopList from "../../../stopList/stopList";
 import { useRoutes, type Coordinates } from "../../../../contexts/routeContext";
 import { useMenu } from "../../../../contexts/menuContext";
 import { useTime } from "../../../../contexts/timeContext";
+import menuStyles from "../../menu.module.css";
+import { VscArrowLeft } from "react-icons/vsc";
+import { VscArrowRight } from "react-icons/vsc";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const getDisplayValue = (source: LocationSource) => {
   if (source.type === "none") return "";
-  if (source.type === "map") return "Point from map";
+  if (source.type === "map") return "Punkt z mapy";
   if (source.type === "stop") return source.name;
   return "";
 };
+
+const INPUT_COLORS = ["#0a9f6b", "#00acf1"];
 
 const InitialMenuState = () => {
   const { tripReady, resetEnd, resetStart } = useTrip();
@@ -29,7 +34,7 @@ const InitialMenuState = () => {
     setIsFromFocused,
     setIsToFocused,
   } = useSearchbars();
-  const { startSource, endSource, setStart, setEnd } = useTrip();
+  const { startSource, endSource, setStart, setEnd, start, end } = useTrip();
   const fromRef = useRef<HTMLInputElement>(null);
   const toRef = useRef<HTMLInputElement>(null);
   const { resetRoutes } = useRoutes();
@@ -69,38 +74,69 @@ const InitialMenuState = () => {
     }
   };
 
+  const swapValues = () => {
+    const tempCoords = start;
+    const tempSource = startSource;
+
+    if (end && tempCoords) {
+      setStart(end, endSource);
+      setEnd(tempCoords, tempSource);
+    }
+  };
+
   return (
     <>
-      {isToFocused || isFromFocused ? <button>back</button> : ""}
-      <Searchbar
-        ref={fromRef}
-        setMenu={setMenu}
-        placeholder="Skąd jedziemy?"
-        value={valueFrom}
-        setValue={setValueFrom}
-        setIsFocused={setIsFromFocused}
-        reset={resetStart}
-      />
-      <Searchbar
-        ref={toRef}
-        setMenu={setMenu}
-        placeholder="Dokąd jedziemy?"
-        value={valueTo}
-        setValue={setValueTo}
-        setIsFocused={setIsToFocused}
-        reset={resetEnd}
-      />
+      <div className={menuStyles.topPanel}>
+        <div className={menuStyles.header}>
+          {isToFocused || isFromFocused ? (
+            <button>
+              <VscArrowLeft />
+            </button>
+          ) : (
+            <div></div>
+          )}
+          ten telefon
+        </div>
 
+        <Searchbar
+          ref={fromRef}
+          setMenu={setMenu}
+          placeholder="Skąd jedziemy?"
+          value={valueFrom}
+          setValue={setValueFrom}
+          setIsFocused={setIsFromFocused}
+          reset={resetStart}
+          color={INPUT_COLORS[0]}
+          isFocused={isFromFocused}
+        />
+        <div className={menuStyles.divider}></div>
+        <Searchbar
+          ref={toRef}
+          setMenu={setMenu}
+          placeholder="Dokąd jedziemy?"
+          value={valueTo}
+          setValue={setValueTo}
+          setIsFocused={setIsToFocused}
+          reset={resetEnd}
+          color={INPUT_COLORS[1]}
+          isFocused={isToFocused}
+          canSwap={!!valueFrom && !!valueTo && !isFromFocused && !isToFocused}
+          swap={swapValues}
+        />
+        {!isFromFocused && !isToFocused ? <Clock /> : ""}
+      </div>
       {isFromFocused ? (
         <StopList value={valueFrom} onClick={handleFromSelect} />
-      ) : (
-        ""
-      )}
+      ) : null}
       {isToFocused ? <StopList value={valueTo} onClick={handleToSelect} /> : ""}
-      {!isFromFocused && !isToFocused ? <Clock /> : ""}
-
       {!isFromFocused && !isToFocused && tripReady ? (
-        <button onClick={() => setMenu("FOUND_ROUTES")}>Szukaj</button>
+        <button
+          className={menuStyles.searchButton}
+          onClick={() => setMenu("FOUND_ROUTES")}
+        >
+          Szukaj
+          <VscArrowRight />
+        </button>
       ) : (
         ""
       )}

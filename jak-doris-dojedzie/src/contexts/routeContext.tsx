@@ -125,9 +125,9 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
         if (!response.ok) {
           throw new Error("Failed to fetch routes");
         }
-        console.log(finalStartTime, finalEndTime);
-        const data: Route[] = await response.json();
 
+        const data: Route[] = await response.json();
+        console.log(data);
         if (!Array.isArray(data)) {
           setRoutes(null);
           return;
@@ -142,7 +142,11 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
             const newRoutes = data.filter(
               (route) => !existingKeys.has(route.key),
             );
-
+            console.log(
+              [...prevRoutes, ...newRoutes].sort(
+                (a, b) => a.departureMinutes - b.departureMinutes,
+              ),
+            );
             return [...prevRoutes, ...newRoutes].sort(
               (a, b) => a.departureMinutes - b.departureMinutes,
             );
