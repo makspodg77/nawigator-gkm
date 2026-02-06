@@ -23,7 +23,7 @@ input[type="text"] {
   transition: all 0.4s ease;
 }
 
-input:focus {
+input[type="text"]:focus {
   height: 49px;
   outline: none;
   line-height: 1.5rem;

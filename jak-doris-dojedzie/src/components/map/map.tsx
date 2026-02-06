@@ -13,7 +13,7 @@ import "leaflet/dist/leaflet.css";
 import { useRoutes } from "../../contexts/routeContext";
 import L from "leaflet";
 import { useHoveredRoute } from "../../contexts/hoveredRouteContext";
-import { useMenu } from "../../contexts/menuContext";
+import MapSelector from "../mapSelector/mapSelector";
 
 const darkenColor = (hex: string, percent: number) => {
   if (!hex) return "#000000";
@@ -48,9 +48,9 @@ const getMidpoint = (points: L.LatLngExpression[]): L.LatLngExpression => {
 };
 
 function MapClickHandler() {
-  const { setStart, start, setEnd, end } = useTrip();
+  const { start, end } = useTrip();
   const map = useMap();
-  const { setMenu } = useMenu();
+
   const { routes } = useRoutes();
   const { hovered } = useHoveredRoute();
 
@@ -173,44 +173,10 @@ function MapClickHandler() {
   if (!clickedPosition) return null;
 
   return (
-    <div
-      className={styles.buttonsContainer}
-      onClick={(e) => {
-        e.stopPropagation();
-        setClickedPosition(null);
-      }}
-      onMouseDown={(e) => e.stopPropagation()}
-    >
-      <div
-        style={{
-          position: "absolute",
-          left: clickedPosition.x,
-          top: clickedPosition.y,
-          transform: "translate(-50%, -100%)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={() => {
-            setStart(clickedPosition, { type: "map" });
-            setClickedPosition(null);
-            setMenu("INITIAL");
-          }}
-        >
-          Set as Start
-        </button>
-        <button
-          onClick={() => {
-            setEnd(clickedPosition, { type: "map" });
-            setClickedPosition(null);
-            setMenu("INITIAL");
-          }}
-        >
-          Set as End
-        </button>
-      </div>
-    </div>
+    <MapSelector
+      setClickedPosition={setClickedPosition}
+      clickedPosition={clickedPosition}
+    />
   );
 }
 

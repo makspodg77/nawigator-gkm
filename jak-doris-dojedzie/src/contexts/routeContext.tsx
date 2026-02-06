@@ -98,7 +98,6 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
 
       if (startTimeChanged) {
         finalEndTime = startTime + timeWindow;
-        console.log("doris");
         if (finalEndTime > 1440) finalEndTime = 1440;
       } else {
         finalStartTime = endTime - timeWindow;
@@ -127,7 +126,7 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
         }
 
         const data: Route[] = await response.json();
-        console.log(data);
+
         if (!Array.isArray(data)) {
           setRoutes(null);
           return;
@@ -142,11 +141,7 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
             const newRoutes = data.filter(
               (route) => !existingKeys.has(route.key),
             );
-            console.log(
-              [...prevRoutes, ...newRoutes].sort(
-                (a, b) => a.departureMinutes - b.departureMinutes,
-              ),
-            );
+
             return [...prevRoutes, ...newRoutes].sort(
               (a, b) => a.departureMinutes - b.departureMinutes,
             );
@@ -166,7 +161,7 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
     [start, end, startTime, endTime],
   );
 
-  const resetRoutes = () => setRoutes(null);
+  const resetRoutes = useCallback(() => setRoutes(null), []);
 
   return (
     <RoutesContext.Provider
