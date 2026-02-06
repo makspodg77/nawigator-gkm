@@ -1,0 +1,57 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 180px;
+  background-color: white;
+  border-radius: 12px;
+  padding: 2px;
+}
+
+.buttonTop,
+.buttonBottom {
+  display: flex;
+  justify-content: space-evenly;
+  border: transparent;
+  padding: 12px 6px;
+  box-sizing: border-box;
+  background-color: transparent;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.buttonBottom {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.buttonTop:hover,
+.buttonBottom:hover {
+  background-color: rgb(244, 244, 244);
+}
+
+.point {
+  width: 10%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.outerCircle {
+  width: 14px;
+  border-radius: 50%;
+  height: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.innerCircle {
+  width: 6px;
+  background-color: white;
+  border-radius: 50%;
+  height: 6px;
+  display: block;
+}

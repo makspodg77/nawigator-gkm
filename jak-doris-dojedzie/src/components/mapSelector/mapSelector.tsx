@@ -1,7 +1,8 @@
 import type { Dispatch, SetStateAction } from "react";
-import styles from "../map/map.module.css";
+import mapStyles from "../map/map.module.css";
 import { useMenu } from "../../contexts/menuContext";
 import { useTrip } from "../../contexts/tripContext";
+import styles from "./mapSelector.module.css";
 
 export type ClickedPosition = {
   lat: number;
@@ -32,7 +33,7 @@ const MapSelector = ({
 
   return (
     <div
-      className={styles.buttonsContainer}
+      className={mapStyles.buttonsContainer}
       onClick={(e) => {
         e.stopPropagation();
         setClickedPosition(null);
@@ -40,6 +41,7 @@ const MapSelector = ({
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div
+        className={styles.container}
         style={{
           position: "absolute",
           left: clickedPosition.x,
@@ -49,11 +51,33 @@ const MapSelector = ({
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <button onClick={handleSetLocation(setStart)}>
-          Ustaw tu punkt startowy
+        <button
+          onClick={handleSetLocation(setStart)}
+          className={styles.buttonTop}
+        >
+          <div className={styles.point}>
+            <div
+              className={styles.outerCircle}
+              style={{ backgroundColor: "#0a9f6b" }}
+            >
+              <div className={styles.innerCircle} />
+            </div>
+          </div>
+          <div>Ustaw tu punkt startowy</div>
         </button>
-        <button onClick={handleSetLocation(setEnd)}>
-          Ustaw tu punkt końcowy
+        <button
+          onClick={handleSetLocation(setEnd)}
+          className={styles.buttonBottom}
+        >
+          <div className={styles.point}>
+            <div
+              className={styles.outerCircle}
+              style={{ backgroundColor: "#00acf1" }}
+            >
+              <div className={styles.innerCircle} />
+            </div>
+          </div>
+          <div>Ustaw tu punkt końcowy</div>
         </button>
       </div>
     </div>

@@ -5,6 +5,7 @@ import styles from "./map.module.css";
 import "leaflet/dist/leaflet.css";
 import MapRoutePainter from "./mapRoutePainter";
 import MapClickHandler from "./mapClickHandler";
+import { marker } from "../marker/marker";
 
 const GOLENIOW_COUNTY_CENTER: [number, number] = [
   53.56723325286705, 14.947863020172536,
@@ -27,9 +28,19 @@ const Map = ({ children }: { children?: ReactNode }) => {
           attribution="&copy; OpenStreetMap &copy; CARTO"
         />
         {start && (
-          <Marker key="start" position={{ lat: start.lat, lng: start.lon }} />
+          <Marker
+            key="start"
+            position={{ lat: start.lat, lng: start.lon }}
+            icon={marker("Start")}
+          />
         )}
-        {end && <Marker key="end" position={{ lat: end.lat, lng: end.lon }} />}
+        {end && (
+          <Marker
+            key="end"
+            position={{ lat: end.lat, lng: end.lon }}
+            icon={marker("Cel")}
+          />
+        )}
         <MapRoutePainter />
         <MapClickHandler />
       </MapContainer>
