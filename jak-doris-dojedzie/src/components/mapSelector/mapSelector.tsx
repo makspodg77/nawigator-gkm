@@ -3,7 +3,7 @@ import styles from "../map/map.module.css";
 import { useMenu } from "../../contexts/menuContext";
 import { useTrip } from "../../contexts/tripContext";
 
-type ClickedPosition = {
+export type ClickedPosition = {
   lat: number;
   lon: number;
   x: number;

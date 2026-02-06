@@ -1,202 +1,36 @@
-import {
-  MapContainer,
-  Marker,
-  TileLayer,
-  useMap,
-  useMapEvents,
-} from "react-leaflet";
+import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import { useTrip } from "../../contexts/tripContext";
-import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import styles from "./map.module.css";
 import "leaflet/dist/leaflet.css";
-import { useRoutes } from "../../contexts/routeContext";
-import L from "leaflet";
-import { useHoveredRoute } from "../../contexts/hoveredRouteContext";
-import MapSelector from "../mapSelector/mapSelector";
+import MapRoutePainter from "./mapRoutePainter";
+import MapClickHandler from "./mapClickHandler";
 
-const darkenColor = (hex: string, percent: number) => {
-  if (!hex) return "#000000";
-  let color = hex.replace(/^#/, "");
-
-  if (color.length === 3) {
-    color = color
-      .split("")
-      .map((c) => c + c)
-      .join("");
-  }
-
-  const num = parseInt(color, 16);
-  const amt = Math.round(2.55 * percent);
-  const R = (num >> 16) - amt;
-  const G = ((num >> 8) & 0x00ff) - amt;
-  const B = (num & 0x0000ff) - amt;
-
-  return `#${(
-    0x1000000 +
-    (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
-    (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
-    (B < 255 ? (B < 1 ? 0 : B) : 255)
-  )
-    .toString(16)
-    .slice(1)}`;
-};
-
-const getMidpoint = (points: L.LatLngExpression[]): L.LatLngExpression => {
-  const midIndex = Math.floor(points.length / 2);
-  return points[midIndex];
-};
-
-function MapClickHandler() {
-  const { start, end } = useTrip();
-  const map = useMap();
-
-  const { routes } = useRoutes();
-  const { hovered } = useHoveredRoute();
-
-  const [clickedPosition, setClickedPosition] = useState<{
-    lat: number;
-    lon: number;
-    x: number;
-    y: number;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!map || !routes) return;
-
-    const pathGroup = L.layerGroup().addTo(map);
-    const labelGroup = L.layerGroup().addTo(map);
-
-    routes.forEach((route) => {
-      let firstTransit = true;
-      let lastLatLon: L.LatLngExpression | undefined = undefined;
-      route.segments.forEach((segment) => {
-        if (segment.type === "transit" && segment.geometryPoints) {
-          const latLons = segment.geometryPoints.map(
-            (gp) => [gp.lat, gp.lon] as L.LatLngExpression,
-          );
-          lastLatLon = latLons.at(-1);
-          if (start && firstTransit) {
-            new L.Polyline([latLons[0], [start?.lat, start?.lon]], {
-              color: "#555555",
-              weight: 4,
-              opacity: route.key === hovered ? 0.8 : 0,
-              dashArray: "10, 10",
-            }).addTo(pathGroup);
-            firstTransit = false;
-          }
-
-          new L.Polyline(latLons, {
-            color: darkenColor(segment.lineColor, 25),
-            weight: 6,
-            opacity: route.key === hovered ? 0.8 : 0,
-            lineJoin: "round",
-            lineCap: "round",
-          }).addTo(pathGroup);
-
-          new L.Polyline(latLons, {
-            color: segment.lineColor,
-            weight: 5,
-            opacity: route.key === hovered ? 1 : 0,
-            lineJoin: "round",
-            lineCap: "round",
-          }).addTo(pathGroup);
-          const midpoint = getMidpoint(latLons);
-          if (midpoint) {
-            const labelIcon = L.divIcon({
-              className: "",
-              html: [
-                `
-              <div style="
-                background-color: ${segment.lineColor || "#666666"};
-                color: white;
-                padding: 2px 8px;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: bold;
-                border: 1px solid ${darkenColor(segment.lineColor || "#666666", 10)};
-                opacity: `,
-                route.key === hovered ? "1" : "0",
-                `;
-                pointer-events: none;
-              ">
-                ${segment.line}
-              </div>
-            `,
-              ].join(""),
-              iconSize: undefined,
-              iconAnchor: [0, 0],
-            });
-
-            new L.Marker(midpoint, { icon: labelIcon }).addTo(labelGroup);
-          }
-        }
-      });
-
-      if (lastLatLon && end) {
-        new L.Polyline([lastLatLon, [end?.lat, end?.lon]], {
-          color: "#555555",
-          weight: 4,
-          opacity: route.key === hovered ? 0.8 : 0,
-          dashArray: "10, 10",
-        }).addTo(pathGroup);
-      }
-    });
-
-    return () => {
-      map.removeLayer(pathGroup);
-      map.removeLayer(labelGroup);
-    };
-  }, [routes, map, hovered, start, end]);
-  useEffect(() => {
-    if (clickedPosition) {
-      map.dragging.disable();
-      map.scrollWheelZoom.disable();
-      map.doubleClickZoom.disable();
-    } else {
-      map.dragging.enable();
-      map.scrollWheelZoom.enable();
-      map.doubleClickZoom.enable();
-    }
-  }, [clickedPosition, map]);
-
-  useMapEvents({
-    click: (e) => {
-      if (!clickedPosition) {
-        const { lat, lng } = e.latlng;
-        const point = map.latLngToContainerPoint(e.latlng);
-        setClickedPosition({ lat, lon: lng, x: point.x, y: point.y });
-      }
-    },
-  });
-
-  if (!clickedPosition) return null;
-
-  return (
-    <MapSelector
-      setClickedPosition={setClickedPosition}
-      clickedPosition={clickedPosition}
-    />
-  );
-}
+const GOLENIOW_COUNTY_CENTER: [number, number] = [
+  53.56723325286705, 14.947863020172536,
+] as const;
 
 const Map = ({ children }: { children?: ReactNode }) => {
   const { start, end } = useTrip();
+
   return (
     <>
       {children}
       <MapContainer
         className={styles.map}
-        center={[53.56723325286705, 14.947863020172536]}
+        center={GOLENIOW_COUNTY_CENTER}
         zoom={11}
         style={{ height: "100vh", width: "100%" }}
       >
         <TileLayer
-          url="http://{s}.tile.osm.org/{z}/{x}/{y}.png"
+          url="https://{s}.tile.osm.org/{z}/{x}/{y}.png"
           attribution="&copy; OpenStreetMap &copy; CARTO"
         />
-        {start ? <Marker position={{ lat: start.lat, lng: start.lon }} /> : ""}
-        {end ? <Marker position={{ lat: end.lat, lng: end.lon }} /> : ""}
+        {start && (
+          <Marker key="start" position={{ lat: start.lat, lng: start.lon }} />
+        )}
+        {end && <Marker key="end" position={{ lat: end.lat, lng: end.lon }} />}
+        <MapRoutePainter />
         <MapClickHandler />
       </MapContainer>
     </>
