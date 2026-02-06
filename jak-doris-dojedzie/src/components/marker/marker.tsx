@@ -10,7 +10,7 @@ export const marker = (text: string) => {
       ">
         <div style="
           padding: 6px 10px;
-          background-color: black;
+          background-color: #1a1a1a;
           color: white;
           border-radius: 12px;
           font-size: 12px;
@@ -23,7 +23,7 @@ export const marker = (text: string) => {
           transform: translateX(-50%);
           width: 2px;
           height: 20px;
-          background-color: black;
+          background-color: #1a1a1a;
         "></div>
         <div style="
           position: absolute;
@@ -33,7 +33,7 @@ export const marker = (text: string) => {
           transform: translateX(-50%);
           width: 6px;
           height: 6px;
-          background-color: black;
+          background-color: #1a1a1a;
         "></div>
       </div>
     `,

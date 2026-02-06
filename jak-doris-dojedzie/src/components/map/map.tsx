@@ -21,6 +21,7 @@ const Map = ({ children }: { children?: ReactNode }) => {
         className={styles.map}
         center={GOLENIOW_COUNTY_CENTER}
         zoom={11}
+        minZoom={9}
         style={{ height: "100vh", width: "100%" }}
       >
         <TileLayer

@@ -46,7 +46,6 @@ const MapSelector = ({
           position: "absolute",
           left: clickedPosition.x,
           top: clickedPosition.y,
-          transform: "translate(-50%, -100%)",
         }}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}

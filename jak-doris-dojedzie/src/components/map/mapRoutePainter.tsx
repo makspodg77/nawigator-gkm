@@ -109,7 +109,7 @@ const createLineLabel = (
       </div>
     `,
     iconSize: undefined,
-    iconAnchor: [0, 0],
+    iconAnchor: [10, 10],
   });
 };
 const MapRoutePainter = () => {

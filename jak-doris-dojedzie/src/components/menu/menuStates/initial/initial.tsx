@@ -7,6 +7,7 @@ import menuStyles from "../../menu.module.css";
 import { VscArrowRight } from "react-icons/vsc";
 import SearchBarSection from "./searchbars";
 import { useSearchBarLogic } from "../../../../hooks/useSearchBarLogic";
+import { useTime } from "../../../../contexts/timeContext";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const getDisplayValue = (source: LocationSource) => {
@@ -20,6 +21,7 @@ const InitialMenuState = () => {
   const { tripReady, resetEnd, resetStart, start, end } = useTrip();
   const { setMenu } = useMenu();
   const { resetRoutes } = useRoutes();
+  const { resetTime } = useTime();
   const { startSource, endSource, setStart, setEnd } = useTrip();
 
   const searchLogic = useSearchBarLogic();
@@ -30,7 +32,8 @@ const InitialMenuState = () => {
 
   useEffect(() => {
     resetRoutes();
-  }, [start, end, resetRoutes]);
+    resetTime();
+  }, [resetRoutes, resetTime]);
 
   const swapValues = () => {
     if (end && start) {
