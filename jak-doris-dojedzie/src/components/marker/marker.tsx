@@ -12,7 +12,7 @@ export const marker = (text: string) => {
           padding: 6px 10px;
           background-color: #1a1a1a;
           color: white;
-          border-radius: 12px;
+          border-radius: 6px;
           font-size: 12px;
           white-space: nowrap;
         ">${text}</div>

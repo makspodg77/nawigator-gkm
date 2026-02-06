@@ -1,0 +1,80 @@
+.container {
+  border: transparent;
+  border-radius: 6px;
+  background-color: white;
+  height: 90px;
+  padding: 6px 12px;
+  box-sizing: border-box;
+  box-shadow: rgba(149, 157, 165, 0.2) 0px 2px 12px;
+  cursor: pointer;
+  display: flex;
+  gap: 5%;
+  justify-content: flex-start;
+  align-items: center;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container:hover {
+  transform: translateY(-1px);
+}
+
+.left,
+.middle,
+.right {
+  height: 70%;
+}
+
+.left {
+  width: 20%;
+  display: flex;
+  gap: 12px;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.middle {
+  width: 80%;
+}
+
+.right {
+  width: 20%;
+  font-size: small;
+  text-align: right;
+  color: #515151;
+}
+
+.lineContainer {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  height: 50%;
+
+  .line {
+    padding: 4px;
+    border: 1px solid rgb(198, 198, 198);
+    border-radius: 6px;
+    font-weight: 600;
+  }
+}
+
+.timeInfo {
+  display: flex;
+  align-items: center;
+  height: 50%;
+  font-size: small;
+  gap: 4px;
+}
+
+.milestoneTime {
+  color: white;
+  padding: 3px;
+  box-sizing: border-box;
+  border-radius: 6px;
+}
+
+.departureTime {
+  font-size: 24px;
+  font-weight: 600;
+}

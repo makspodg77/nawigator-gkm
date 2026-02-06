@@ -55,6 +55,7 @@ const SearchBarSection = ({
         color={INPUT_COLORS[0]}
         isFocused={isFromFocused}
       />
+
       <div className={menuStyles.divider}></div>
       <Searchbar
         ref={toRef}
@@ -69,6 +70,7 @@ const SearchBarSection = ({
         canSwap={!!valueFrom && !!valueTo && !anyFocused}
         swap={onSwap}
       />
+
       {!anyFocused && <Clock />}
     </div>
   );

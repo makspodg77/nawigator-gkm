@@ -2,6 +2,7 @@ import { useHoveredRoute } from "../../contexts/hoveredRouteContext";
 import { useMenu } from "../../contexts/menuContext";
 import type { Route } from "../../contexts/routeContext";
 import useRoute from "../../hooks/useRoute";
+import styles from "./routeOption.module.css";
 
 const RouteOption = ({ route }: { route: Route }) => {
   const { setHovered } = useHoveredRoute();
@@ -10,28 +11,49 @@ const RouteOption = ({ route }: { route: Route }) => {
   const { transitSegments, finalWalkSegment, initialWalkSegment } =
     useRoute(route);
 
+  const transitLines = transitSegments.map((segment) => segment.line);
+
+  const firstTransit = transitSegments[0];
+  const lastTransit = transitSegments[transitSegments.length - 1];
+  const transitDuration = lastTransit.arrival - firstTransit.departure;
+
   return (
     <button
       onMouseEnter={() => setHovered(route.key)}
       onClick={() => setMenu("CHOSEN_ROUTE")}
+      className={styles.container}
     >
-      <h2>{route.departure}</h2>
-      <h3>
-        {route.segments.map((segment) =>
-          segment.type === "transit" ? segment.line + " " : "",
-        )}
-        {"    "}
-        {route.duration + " min "}
-      </h3>
-      <h4>
-        {initialWalkSegment ? initialWalkSegment.duration + "min " : ""}
-        {transitSegments[0].formattedDeparture}{" "}
-        {transitSegments[transitSegments.length - 1].arrival -
-          transitSegments[0].departure +
-          " min "}
-        {transitSegments[transitSegments.length - 1].formattedArrival + " "}
-        {finalWalkSegment ? finalWalkSegment.duration + "min " : ""}
-      </h4>
+      <div className={styles.left}>
+        <div>Odjazd</div>
+        <div className={styles.departureTime}>{route.departure}</div>
+      </div>
+      <div className={styles.middle}>
+        <div className={styles.lineContainer}>
+          {transitLines.map((line, index) => (
+            <div key={index} className={styles.line}>
+              {line}
+            </div>
+          ))}
+        </div>
+        <div className={styles.timeInfo}>
+          {initialWalkSegment ? `${initialWalkSegment.duration} min` : null}
+          <div
+            className={styles.milestoneTime}
+            style={{ backgroundColor: "#0a9f6b" }}
+          >
+            {firstTransit.formattedDeparture}
+          </div>
+          {`${transitDuration} min`}
+          <div
+            className={styles.milestoneTime}
+            style={{ backgroundColor: "#00acf1" }}
+          >
+            {lastTransit.formattedArrival}
+          </div>
+          {finalWalkSegment ? `${finalWalkSegment.duration} min` : null}
+        </div>
+      </div>
+      <div className={styles.right}> {`${route.duration} min`}</div>
     </button>
   );
 };

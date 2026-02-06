@@ -5,6 +5,7 @@
   display: flex;
   cursor: pointer;
   justify-content: start;
+  background-color: white;
   gap: 10px;
   .icon {
     width: 10%;

@@ -1,8 +1,8 @@
 .menu {
-  width: min(350px, 95vw);
+  width: min(400px, 95vw);
   height: 60vh;
   border-radius: 12px;
-  background-color: rgb(255, 255, 255);
+  background-color: #f7f6f6;
   position: absolute;
   top: 2%;
   left: 1%;
@@ -16,7 +16,7 @@
 .topPanel {
   background-color: #056b89;
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   box-sizing: border-box;
 
   .header {

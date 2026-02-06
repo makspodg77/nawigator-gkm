@@ -1,4 +1,5 @@
 import { useTime } from "../../contexts/timeContext";
+import "./clock.module.css";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const minutesToTimeString = (minutes: number): string => {

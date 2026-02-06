@@ -1,0 +1,17 @@
+input[type="time"] {
+  padding: 6px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background-color: #04566e;
+  color: white;
+  border: transparent;
+  margin-top: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  outline: transparent;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(100%);
+  cursor: pointer;
+}

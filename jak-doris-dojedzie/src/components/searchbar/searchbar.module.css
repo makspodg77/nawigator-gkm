@@ -2,7 +2,7 @@
   width: 100%;
   background-color: white;
   display: flex;
-  border-radius: 12px;
+  border-radius: 6px;
   justify-content: space-around;
   align-items: center;
   transition: all 0.4s ease;
