@@ -6,6 +6,11 @@
   justify-content: space-around;
   align-items: center;
   transition: all 0.4s ease;
+
+  button {
+    background-color: transparent;
+    border: transparent;
+  }
 }
 
 input[type="text"] {

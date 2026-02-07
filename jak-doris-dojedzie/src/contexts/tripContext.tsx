@@ -4,7 +4,7 @@ import type { Coordinates } from "./routeContext";
 
 export type LocationSource =
   | { type: "none" }
-  | { type: "map" }
+  | { type: "map"; name: string }
   | { type: "stop"; name: string; stopId: number };
 
 const TripContext = createContext<Trip | null>(null);

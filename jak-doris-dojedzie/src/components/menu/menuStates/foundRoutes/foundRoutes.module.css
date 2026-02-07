@@ -17,6 +17,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
 }
 
 .innerCircle {
@@ -47,4 +48,13 @@
   border: transparent;
   cursor: pointer;
   text-decoration: underline;
+  margin: 12px 0;
+}
+
+.connector {
+  width: 2px;
+  height: 20px;
+  background-color: #3e3e3e;
+  position: absolute;
+  top: 14px;
 }

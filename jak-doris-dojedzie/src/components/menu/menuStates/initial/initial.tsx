@@ -11,10 +11,7 @@ import { useTime } from "../../../../contexts/timeContext";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const getDisplayValue = (source: LocationSource) => {
-  if (source.type === "none") return "";
-  if (source.type === "map") return "Punkt z mapy";
-  if (source.type === "stop") return source.name;
-  return "";
+  return source.type === "none" ? "" : source.name || "";
 };
 
 const InitialMenuState = () => {
@@ -44,10 +41,9 @@ const InitialMenuState = () => {
   }, [resetRoutes, resetTime]);
 
   const swapValues = () => {
-    if (end && start) {
-      setStart(end, endSource);
-      setEnd(start, startSource);
-    }
+    if (!end || !start) return;
+    setStart(end, endSource);
+    setEnd(start, startSource);
   };
 
   return (

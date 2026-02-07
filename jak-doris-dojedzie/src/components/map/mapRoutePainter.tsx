@@ -5,10 +5,19 @@ import { useRoutes } from "../../contexts/routeContext";
 import { useHoveredRoute } from "../../contexts/hoveredRouteContext";
 import L from "leaflet";
 import { darken } from "polished";
+import { busPath, trainPath, tramPath } from "./svgPaths";
 
 const getMidpoint = (points: L.LatLngExpression[]): L.LatLngExpression => {
   const midIndex = Math.floor(points.length / 2);
   return points[midIndex];
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const getSvgPath = (type: string) => {
+  if (type === "Linia tramwajowa dzienna") return tramPath;
+  else if (type === "Linia kolejowa dzienna pasażerska") return trainPath;
+
+  return busPath;
 };
 
 const ROUTE_STYLES = {
@@ -90,6 +99,7 @@ const createLineLabel = (
   lineNumber: string,
   lineColor: string,
   isHovered: boolean,
+  vehicleSvgPath: string,
 ): L.DivIcon => {
   return L.divIcon({
     className: "",
@@ -104,7 +114,13 @@ const createLineLabel = (
         border: 1px solid ${darken(ROUTE_STYLES.TRANSIT.BORDER_DARKEN, lineColor)};
         opacity: ${isHovered ? 1 : 0};
         pointer-events: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
       ">
+        <svg width="14" height="14" viewBox="0 0 512 512" fill="currentColor">
+          <path d="${vehicleSvgPath}"/>
+        </svg>
         ${lineNumber}
       </div>
     `,
@@ -160,6 +176,7 @@ const MapRoutePainter = () => {
             segment.line,
             segment.lineColor,
             isHovered,
+            getSvgPath(segment.lineType),
           );
           new L.Marker(midpoint, { icon: label }).addTo(labelGroup);
         }

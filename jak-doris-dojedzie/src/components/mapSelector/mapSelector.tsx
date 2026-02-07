@@ -16,6 +16,24 @@ type MapSelectorProps = {
   clickedPosition: ClickedPosition | null;
 };
 
+const getAddressFromLatLon = async (lat: number, lon: number) => {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+    );
+    const data = await response.json();
+    const addr = data.address;
+    const street = addr.road || addr.suburb;
+    const city = addr.city || addr.town || addr.village;
+
+    return street && city
+      ? `${street}, ${city}`
+      : street || city || "Wybrana lokalizacja";
+  } catch (error) {
+    console.error("Failed to fetch address:", error);
+    return "Wybrana lokalizacja";
+  }
+};
 const MapSelector = ({
   setClickedPosition,
   clickedPosition,
@@ -25,11 +43,19 @@ const MapSelector = ({
 
   if (!clickedPosition) return null;
 
-  const handleSetLocation = (setter: typeof setStart | typeof setEnd) => () => {
-    setter(clickedPosition, { type: "map" });
-    setClickedPosition(null);
-    setMenu("INITIAL");
-  };
+  const handleSetLocation =
+    (setter: typeof setStart | typeof setEnd) => async () => {
+      const name = await getAddressFromLatLon(
+        clickedPosition.lat,
+        clickedPosition.lon,
+      );
+      setter(clickedPosition, {
+        type: "map",
+        name: name,
+      });
+      setClickedPosition(null);
+      setMenu("INITIAL");
+    };
 
   return (
     <div

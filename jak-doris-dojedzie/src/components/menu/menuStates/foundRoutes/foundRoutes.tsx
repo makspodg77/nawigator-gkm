@@ -40,6 +40,7 @@ const FoundRoutesMenuState = () => {
               className={styles.outerCircle}
               style={{ backgroundColor: "#0a9f6b" }}
             >
+              <div className={styles.connector} />
               <div className={styles.innerCircle} />
             </div>
           </div>

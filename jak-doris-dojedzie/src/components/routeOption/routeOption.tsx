@@ -1,8 +1,11 @@
+import { Fragment } from "react";
 import { useHoveredRoute } from "../../contexts/hoveredRouteContext";
 import { useMenu } from "../../contexts/menuContext";
 import type { Route } from "../../contexts/routeContext";
 import useRoute from "../../hooks/useRoute";
 import styles from "./routeOption.module.css";
+import { FaWalking } from "react-icons/fa";
+import { getSvgPath } from "../map/mapRoutePainter";
 
 const RouteOption = ({ route }: { route: Route }) => {
   const { setHovered } = useHoveredRoute();
@@ -10,7 +13,10 @@ const RouteOption = ({ route }: { route: Route }) => {
   const { transitSegments, finalWalkSegment, initialWalkSegment } =
     useRoute(route);
 
-  const transitLines = transitSegments.map((segment) => segment.line);
+  const transitLines = transitSegments.map((segment) => ({
+    name: segment.line,
+    svgPath: getSvgPath(segment.lineType),
+  }));
   const firstTransit = transitSegments[0];
   const lastTransit = transitSegments[transitSegments.length - 1];
   const transitDuration = lastTransit?.arrival - firstTransit?.departure || 0;
@@ -30,14 +36,24 @@ const RouteOption = ({ route }: { route: Route }) => {
       </div>
       <div className={styles.middle}>
         <div className={styles.lineContainer}>
-          {transitLines.map((line, index) => (
-            <div key={index} className={styles.line}>
-              {line}
-            </div>
+          {transitLines.slice(0, 5).map((line, index) => (
+            <Fragment key={index}>
+              {transitLines.length <= 3 && (
+                <svg viewBox="0 0 512 512" fill="currentColor">
+                  <path d={line.svgPath} />
+                </svg>
+              )}
+              <div className={styles.line}>{line.name}</div>
+            </Fragment>
           ))}
         </div>
         <div className={styles.timeInfo}>
-          {initialWalkSegment ? `${initialWalkSegment.duration} min` : null}
+          {initialWalkSegment ? (
+            <>
+              <FaWalking style={{ flexShrink: 0 }} />
+              {initialWalkSegment.duration} min
+            </>
+          ) : null}
           <div
             className={styles.milestoneTime}
             style={{ backgroundColor: "#0a9f6b" }}
@@ -51,7 +67,12 @@ const RouteOption = ({ route }: { route: Route }) => {
           >
             {lastTransit.formattedArrival}
           </div>
-          {finalWalkSegment ? `${finalWalkSegment.duration} min` : null}
+          {finalWalkSegment ? (
+            <>
+              <FaWalking style={{ flexShrink: 0 }} />
+              {finalWalkSegment.duration} min
+            </>
+          ) : null}
         </div>
       </div>
       <div className={styles.right}>{`${route.duration} min`}</div>
