@@ -18,15 +18,23 @@ export const getDisplayValue = (source: LocationSource) => {
 };
 
 const InitialMenuState = () => {
-  const { tripReady, resetEnd, resetStart, start, end } = useTrip();
+  const {
+    resetEnd,
+    resetStart,
+    start,
+    end,
+    startSource,
+    endSource,
+    setStart,
+    setEnd,
+  } = useTrip();
   const { setMenu } = useMenu();
   const { resetRoutes } = useRoutes();
   const { resetTime } = useTime();
-  const { startSource, endSource, setStart, setEnd } = useTrip();
 
   const searchLogic = useSearchBarLogic();
-  console.log(searchLogic);
-  const { isFromFocused, isToFocused, valueFrom, valueTo } = searchLogic;
+  const { isFromFocused, isToFocused, valueFrom, valueTo, tripReady } =
+    searchLogic;
 
   const anyFocused = isFromFocused || isToFocused;
 

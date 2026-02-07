@@ -58,9 +58,11 @@ const FoundRoutesMenuState = () => {
         </div>
       </div>
       <div className={styles.container}>
-        <button onClick={getNewLowerBound} className={styles.searchButton}>
-          Szukaj przed..
-        </button>
+        {startTime !== 0 ? (
+          <button onClick={getNewLowerBound} className={styles.searchButton}>
+            Szukaj przed..
+          </button>
+        ) : null}
         {isLoading ? (
           <p>Ładowanie tras...</p>
         ) : routes && routes.length > 0 ? (
@@ -68,9 +70,11 @@ const FoundRoutesMenuState = () => {
         ) : (
           <p>Nie znaleźliśmy żadnego połączenia</p>
         )}
-        <button className={styles.searchButton} onClick={getNewUpperBound}>
-          Szukaj po..
-        </button>
+        {endTime !== 1440 ? (
+          <button className={styles.searchButton} onClick={getNewUpperBound}>
+            Szukaj po..
+          </button>
+        ) : null}
       </div>
     </>
   );

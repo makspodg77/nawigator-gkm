@@ -1,5 +1,5 @@
 const ErrorMenuState = () => {
-  return <>dupka</>;
+  return <>Wystąpił Błąd</>;
 };
 
 export default ErrorMenuState;

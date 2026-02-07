@@ -50,6 +50,7 @@ input[type="text"]:focus {
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
 }
 
 .innerCircle {
@@ -58,4 +59,19 @@ input[type="text"]:focus {
   border-radius: 50%;
   height: 6px;
   display: block;
+}
+
+.connector {
+  width: 2px;
+  height: 13px;
+  position: absolute;
+  background-color: rgb(81, 81, 81);
+}
+
+.connector[data-position="start"] {
+  top: 14px;
+}
+
+.connector[data-position="end"] {
+  bottom: 14px;
 }

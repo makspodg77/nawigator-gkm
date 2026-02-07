@@ -1,8 +1,7 @@
 import { forwardRef, type Dispatch, type SetStateAction } from "react";
 import type { MenuState } from "../../contexts/menuContext";
 import styles from "./searchbar.module.css";
-import { VscChromeClose } from "react-icons/vsc";
-import { VscArrowSwap } from "react-icons/vsc";
+import { VscChromeClose, VscArrowSwap } from "react-icons/vsc";
 
 type SearchbarProps = {
   value: string;
@@ -15,6 +14,7 @@ type SearchbarProps = {
   isFocused: boolean;
   canSwap?: boolean;
   swap?: () => void;
+  position?: "start" | "end";
 };
 
 const Searchbar = forwardRef<HTMLInputElement, SearchbarProps>(
@@ -30,29 +30,30 @@ const Searchbar = forwardRef<HTMLInputElement, SearchbarProps>(
       isFocused,
       canSwap = false,
       swap,
+      position,
     },
     ref,
   ) => {
     const handleChange = (e?: React.ChangeEvent<HTMLInputElement>) => {
-      let newValue = "";
-
-      if (e) newValue = e.target.value;
-
+      const newValue = e?.target.value ?? "";
       setValue(newValue);
       setMenu("INITIAL");
-
-      if (newValue === "") {
-        reset();
-      }
+      if (!newValue) reset();
     };
+
+    const showClear = isFocused && value;
+    const showSwap = !showClear && canSwap && swap;
 
     return (
       <div className={styles.container}>
-        <div className={styles.point} onMouseDown={(e) => e.preventDefault()}>
+        <div className={styles.point}>
           <div
             className={styles.outerCircle}
             style={{ backgroundColor: color }}
           >
+            {position && (
+              <div className={styles.connector} data-position={position} />
+            )}
             <div className={styles.innerCircle} />
           </div>
         </div>
@@ -67,23 +68,28 @@ const Searchbar = forwardRef<HTMLInputElement, SearchbarProps>(
           placeholder={placeholder}
         />
 
-        <div className={styles.action} onMouseDown={(e) => e.preventDefault()}>
-          {isFocused && value ? (
-            <div
+        <div className={styles.action}>
+          {showClear && (
+            <button
+              type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleChange()}
+              aria-label="Clear search"
             >
               <VscChromeClose />
-            </div>
-          ) : canSwap && swap ? (
-            <div onClick={() => swap()}>
+            </button>
+          )}
+          {showSwap && (
+            <button type="button" onClick={swap} aria-label="Swap locations">
               <VscArrowSwap />
-            </div>
-          ) : null}
+            </button>
+          )}
         </div>
       </div>
     );
   },
 );
+
+Searchbar.displayName = "Searchbar";
 
 export default Searchbar;

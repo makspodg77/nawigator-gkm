@@ -6,7 +6,7 @@ import { useTrip, type LocationSource } from "../contexts/tripContext";
 import type { Coordinates } from "../contexts/routeContext";
 
 export const useSearchBarLogic = () => {
-  const { startSource, endSource, setStart, setEnd } = useTrip();
+  const { startSource, endSource, setStart, setEnd, tripReady } = useTrip();
   const { setMenu } = useMenu();
   const {
     valueFrom,
@@ -65,6 +65,7 @@ export const useSearchBarLogic = () => {
     setValueTo,
     setIsFromFocused,
     setIsToFocused,
+    tripReady,
     handleFromSelect,
     handleToSelect,
   };

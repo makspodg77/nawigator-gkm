@@ -19,6 +19,7 @@ type SearchBarSectionProps = {
   onSwap: () => void;
   resetStart: () => void;
   resetEnd: () => void;
+  tripReady: boolean;
 };
 
 const INPUT_COLORS = ["#0a9f6b", "#00acf1"] as const;
@@ -37,6 +38,7 @@ const SearchBarSection = ({
   onSwap,
   resetStart,
   resetEnd,
+  tripReady,
 }: SearchBarSectionProps) => {
   const { setMenu } = useMenu();
   const anyFocused = isFromFocused || isToFocused;
@@ -54,6 +56,7 @@ const SearchBarSection = ({
         reset={resetStart}
         color={INPUT_COLORS[0]}
         isFocused={isFromFocused}
+        position={tripReady && !anyFocused ? "start" : undefined}
       />
 
       <div className={menuStyles.divider}></div>
@@ -69,6 +72,7 @@ const SearchBarSection = ({
         isFocused={isToFocused}
         canSwap={!!valueFrom && !!valueTo && !anyFocused}
         swap={onSwap}
+        position={tripReady && !anyFocused ? "end" : undefined}
       />
 
       {!anyFocused && <Clock />}

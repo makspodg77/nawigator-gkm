@@ -6,22 +6,23 @@ import styles from "./routeOption.module.css";
 
 const RouteOption = ({ route }: { route: Route }) => {
   const { setHovered } = useHoveredRoute();
-
   const { setMenu } = useMenu();
   const { transitSegments, finalWalkSegment, initialWalkSegment } =
     useRoute(route);
 
   const transitLines = transitSegments.map((segment) => segment.line);
-
   const firstTransit = transitSegments[0];
   const lastTransit = transitSegments[transitSegments.length - 1];
-  const transitDuration = lastTransit.arrival - firstTransit.departure;
+  const transitDuration = lastTransit?.arrival - firstTransit?.departure || 0;
 
   return (
     <button
       onMouseEnter={() => setHovered(route.key)}
+      onFocus={() => setHovered(route.key)}
       onClick={() => setMenu("CHOSEN_ROUTE")}
       className={styles.container}
+      aria-label={`Route departing at ${route.departure}, ${route.duration} minutes total`}
+      type="button"
     >
       <div className={styles.left}>
         <div>Odjazd</div>
@@ -53,7 +54,7 @@ const RouteOption = ({ route }: { route: Route }) => {
           {finalWalkSegment ? `${finalWalkSegment.duration} min` : null}
         </div>
       </div>
-      <div className={styles.right}> {`${route.duration} min`}</div>
+      <div className={styles.right}>{`${route.duration} min`}</div>
     </button>
   );
 };
