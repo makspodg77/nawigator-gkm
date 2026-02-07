@@ -9,6 +9,7 @@ import menuStyles from "../../menu.module.css";
 import styles from "./foundRoutes.module.css";
 import clsx from "clsx";
 import { VscArrowLeft } from "react-icons/vsc";
+import LoadingMenuState from "../loading/loading";
 
 const FoundRoutesMenuState = () => {
   const { startSource, endSource } = useTrip();
@@ -25,6 +26,10 @@ const FoundRoutesMenuState = () => {
       setMenu("ERROR");
     }
   }, [isLoading, routes, error, setMenu]);
+
+  const showFullLoading = isLoading && (!routes || routes.length === 0);
+
+  if (isLoading) return <LoadingMenuState />;
 
   return (
     <>
@@ -59,19 +64,17 @@ const FoundRoutesMenuState = () => {
         </div>
       </div>
       <div className={styles.container}>
-        {startTime !== 0 ? (
+        {!isLoading && startTime !== 0 ? (
           <button onClick={getNewLowerBound} className={styles.searchButton}>
             Szukaj przed..
           </button>
         ) : null}
-        {isLoading ? (
-          <p>Ładowanie tras...</p>
-        ) : routes && routes.length > 0 ? (
+        {routes && routes.length > 0 ? (
           routes.map((route) => <RouteOption key={route.key} route={route} />)
         ) : (
           <p>Nie znaleźliśmy żadnego połączenia</p>
         )}
-        {endTime !== 1440 ? (
+        {!isLoading && endTime !== 1440 ? (
           <button className={styles.searchButton} onClick={getNewUpperBound}>
             Szukaj po..
           </button>

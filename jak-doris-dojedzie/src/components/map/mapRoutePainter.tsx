@@ -1,23 +1,54 @@
 import { useMap } from "react-leaflet";
-import { useEffect } from "react";
+import { useEffect, type JSX } from "react";
 import { useTrip } from "../../contexts/tripContext";
 import { useRoutes } from "../../contexts/routeContext";
 import { useHoveredRoute } from "../../contexts/hoveredRouteContext";
 import L from "leaflet";
 import { darken } from "polished";
-import { busPath, trainPath, tramPath } from "./svgPaths";
+import {
+  busPath,
+  BusSvg,
+  trainPath,
+  TrainSvg,
+  tramPath,
+  TramSvg,
+} from "./svgPaths";
 
 const getMidpoint = (points: L.LatLngExpression[]): L.LatLngExpression => {
   const midIndex = Math.floor(points.length / 2);
   return points[midIndex];
 };
 
+type vehicleSvg = {
+  element: JSX.Element;
+  size: string;
+  viewBox: string;
+  path: string;
+};
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const getSvgPath = (type: string) => {
-  if (type === "Linia tramwajowa dzienna") return tramPath;
-  else if (type === "Linia kolejowa dzienna pasażerska") return trainPath;
+  if (type === "Linia tramwajowa dzienna")
+    return {
+      element: <TramSvg />,
+      size: "18",
+      viewBox: "0 -960 960 960",
+      path: tramPath,
+    } as vehicleSvg;
+  else if (type === "Linia kolejowa dzienna pasażerska")
+    return {
+      element: <TrainSvg />,
+      size: "18",
+      viewBox: "0 -960 960 960",
+      path: trainPath,
+    } as vehicleSvg;
 
-  return busPath;
+  return {
+    element: <BusSvg />,
+    size: "18",
+    viewBox: "0 -960 960 960",
+    path: busPath,
+  } as vehicleSvg;
 };
 
 const ROUTE_STYLES = {
@@ -99,7 +130,7 @@ const createLineLabel = (
   lineNumber: string,
   lineColor: string,
   isHovered: boolean,
-  vehicleSvgPath: string,
+  vehicleSvgPath: vehicleSvg,
 ): L.DivIcon => {
   return L.divIcon({
     className: "",
@@ -118,8 +149,8 @@ const createLineLabel = (
         align-items: center;
         gap: 4px;
       ">
-        <svg width="14" height="14" viewBox="0 0 512 512" fill="currentColor">
-          <path d="${vehicleSvgPath}"/>
+        <svg width="${vehicleSvgPath.size}" height="${vehicleSvgPath.size}" viewBox="${vehicleSvgPath.viewBox}" fill="currentColor">
+          <path d="${vehicleSvgPath.path}"/>
         </svg>
         ${lineNumber}
       </div>

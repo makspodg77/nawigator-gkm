@@ -4,6 +4,7 @@ import FoundRoutesMenuState from "./menuStates/foundRoutes/foundRoutes";
 import { useMenu } from "../../contexts/menuContext";
 import ErrorMenuState from "./menuStates/error/error";
 import RouteChosenMenuState from "./menuStates/routeChosen/routeChosen";
+import LoadingMenuState from "./menuStates/loading/loading";
 
 const Menu = () => {
   const { menu } = useMenu();
@@ -18,6 +19,8 @@ const Menu = () => {
         return <ErrorMenuState />;
       case "CHOSEN_ROUTE":
         return <RouteChosenMenuState />;
+      case "LOADING":
+        return <LoadingMenuState />;
       default:
         return null;
     }

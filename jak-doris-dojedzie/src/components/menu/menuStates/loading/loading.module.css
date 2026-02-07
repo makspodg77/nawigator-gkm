@@ -1,0 +1,56 @@
+.container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+
+  box-sizing: border-box;
+  font-size: larger;
+  text-align: center;
+}
+
+.up {
+  margin-top: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+
+  > img {
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  > div {
+    animation: pulseOpacity 2s ease-in-out infinite;
+  }
+}
+
+.down {
+  background-color: #046b88;
+  width: 100%;
+  color: white;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1.05);
+  }
+  50% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseOpacity {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

@@ -836,49 +836,18 @@ async function findNearbyStops(
       { latitude: info.lon, longitude: info.lat },
     );
     if (distance <= MAX_WALK_DISTANCE) {
-      nearbyStops.push({ stopId, info, distance });
+      nearbyStops.push({
+        stopId,
+        stopInfo: info,
+        distance,
+        walkTime: Math.ceil(distance / WALK_SPEED),
+      });
     }
   }
 
   if (nearbyStops.length === 0) return [];
 
-  const BATCH_SIZE = 25;
-  const allDistances: IStop[] = [];
-
-  for (let i = 0; i < nearbyStops.length; i += BATCH_SIZE) {
-    const batch = nearbyStops.slice(i, i + BATCH_SIZE);
-    const destinations = batch
-      .map((s) => `${s.info.lon},${s.info.lat}`)
-      .join("|");
-
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${lon},${lat}&destinations=${destinations}&mode=walking&units=metric&key=${process.env.GOOGLE_KEY}`,
-    );
-
-    const data = await res.json();
-
-    batch.forEach((stop, idx) => {
-      const element = data.rows[0].elements[idx];
-
-      if (element.status === "OK") {
-        allDistances.push({
-          stopId: stop.stopId,
-          distance: element.distance.value,
-          walkTime: Math.ceil(element.distance.value / WALK_SPEED),
-          stopInfo: stop.info,
-        });
-      } else {
-        allDistances.push({
-          stopId: stop.stopId,
-          distance: stop.distance,
-          walkTime: Math.ceil(stop.distance / WALK_SPEED),
-          stopInfo: stop.info,
-        });
-      }
-    });
-  }
-
-  return allDistances.sort((a, b) => a.distance - b.distance);
+  return nearbyStops.sort((a, b) => a.distance - b.distance);
 }
 
 export default {

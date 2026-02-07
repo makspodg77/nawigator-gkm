@@ -15,7 +15,7 @@ const RouteOption = ({ route }: { route: Route }) => {
 
   const transitLines = transitSegments.map((segment) => ({
     name: segment.line,
-    svgPath: getSvgPath(segment.lineType),
+    svgPath: getSvgPath(segment.lineType).element,
   }));
   const firstTransit = transitSegments[0];
   const lastTransit = transitSegments[transitSegments.length - 1];
@@ -38,11 +38,7 @@ const RouteOption = ({ route }: { route: Route }) => {
         <div className={styles.lineContainer}>
           {transitLines.slice(0, 5).map((line, index) => (
             <Fragment key={index}>
-              {transitLines.length <= 3 && (
-                <svg viewBox="0 0 512 512" fill="currentColor">
-                  <path d={line.svgPath} />
-                </svg>
-              )}
+              {transitLines.length <= 3 && line.svgPath}
               <div className={styles.line}>{line.name}</div>
             </Fragment>
           ))}

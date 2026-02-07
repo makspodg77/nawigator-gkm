@@ -1,4 +1,5 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { useMenu } from "./menuContext";
 
 export type StopGroup = {
   id: number;
@@ -19,6 +20,14 @@ export function StopsProvider({
   children: ReactNode;
   stops: StopGroup[];
 }) {
+  const { setMenu } = useMenu();
+
+  useEffect(() => {
+    if (stops.length > 0) {
+      setMenu("INITIAL");
+    }
+  }, [stops.length, setMenu]);
+
   return (
     <StopsContext.Provider value={stops}>{children}</StopsContext.Provider>
   );

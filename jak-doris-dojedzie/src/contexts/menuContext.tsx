@@ -16,7 +16,7 @@ type MenuContextType = {
 export const MenuContext = createContext<MenuContextType | null>(null);
 
 export function MenuProvider({ children }: { children: ReactNode }) {
-  const [menu, setMenu] = useState<MenuState>("INITIAL");
+  const [menu, setMenu] = useState<MenuState>("LOADING");
 
   return (
     <MenuContext.Provider value={{ menu, setMenu }}>
