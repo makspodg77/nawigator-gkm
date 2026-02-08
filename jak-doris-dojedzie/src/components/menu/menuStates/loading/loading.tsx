@@ -28,7 +28,7 @@ const LoadingMenuState = () => {
         <div>{randomText}</div>
       </div>
       <div className={styles.down}>
-        <p> Goleniowska Komunikacja Miejska</p>
+        <p>Goleniowska Komunikacja Miejska</p>
         <p>Max Podgórski</p>
       </div>
     </div>
