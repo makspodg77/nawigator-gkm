@@ -607,11 +607,20 @@ function filterAndDeduplicateRoutes(routes: IRoute[]) {
   }));
 
   scoredRoutes.sort((a, b) => a.score - b.score);
-  const bestScore = scoredRoutes[0].score;
 
-  const filteredRoutes = scoredRoutes.filter(
-    (route) => route.score < bestScore * 2,
-  );
+  const nonDominatedRoutes = scoredRoutes.filter(({ route: routeA }) => {
+    return !scoredRoutes.some(({ route: routeB }) => {
+      if (routeA.key === routeB.key) return false;
+
+      // routeB dominates routeA if it starts later AND arrives earlier
+      return (
+        routeB.actualDeparture >= routeA.actualDeparture &&
+        routeB.arrival <= routeA.arrival &&
+        (routeB.actualDeparture > routeA.actualDeparture ||
+          routeB.arrival < routeA.arrival)
+      );
+    });
+  });
 
   // deduplication algorithm
   const seenKeys = new Set();
@@ -620,7 +629,7 @@ function filterAndDeduplicateRoutes(routes: IRoute[]) {
   const seenLegs = new Set();
   const result = [];
 
-  for (const { route } of filteredRoutes) {
+  for (const { route } of nonDominatedRoutes) {
     if (seenKeys.has(route.key)) continue;
     if (seenDepartures.has(route.actualDeparture)) continue;
     if (seenArrivals.has(route.arrival)) continue;

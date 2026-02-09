@@ -1,0 +1,90 @@
+.header {
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  margin-bottom: 24px;
+}
+
+.container {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.segment {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+}
+
+.transitSegment {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  align-items: start;
+  border-bottom: 1px solid rgb(180, 180, 180);
+}
+
+.leftCell,
+.rightCell {
+  padding: 4px;
+}
+
+.leftCell {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  border-right: 1px solid rgb(180, 180, 180);
+}
+
+.leftCellWalk {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50px;
+  border-right: 1px solid rgb(180, 180, 180);
+}
+.rightCellWalk {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  height: 100%;
+}
+
+.connector {
+  position: absolute;
+  width: 3px;
+  height: 100%;
+  background-color: rgb(55, 185, 76);
+  left: 50%;
+  transform: translateX(-50%);
+  top: 0;
+  z-index: 1;
+}
+
+.lineIconContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.lineIconContainer > svg {
+  flex-shrink: 0;
+  height: 28px;
+}
+
+.leftCell {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+  min-height: 30px;
+}
+.bStopTime {
+  position: relative;
+  z-index: 200;
+  background-color: #f7f6f6;
+}
+
+.milestoneText {
+  font-weight: 700;
+}

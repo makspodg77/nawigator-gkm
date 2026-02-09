@@ -1,7 +1,11 @@
 import { Fragment } from "react";
 import { useHoveredRoute } from "../../contexts/hoveredRouteContext";
 import { useMenu } from "../../contexts/menuContext";
-import type { Route } from "../../contexts/routeContext";
+import type {
+  Route,
+  TransitSegment,
+  WalkSegment,
+} from "../../contexts/routeContext";
 import useRoute from "../../hooks/useRoute";
 import styles from "./routeOption.module.css";
 import { FaWalking } from "react-icons/fa";
@@ -13,6 +17,59 @@ const RouteOption = ({ route }: { route: Route }) => {
   const { transitSegments, finalWalkSegment, initialWalkSegment } =
     useRoute(route);
 
+  return (
+    <button
+      onMouseEnter={() => setHovered(route.key)}
+      onFocus={() => setHovered(route.key)}
+      onClick={() => setMenu("CHOSEN_ROUTE")}
+      className={styles.button}
+      aria-label={`Route departing at ${route.departure}, ${route.duration} minutes total`}
+      type="button"
+    >
+      <RouteHeader
+        route={route}
+        initialWalkSegment={initialWalkSegment}
+        finalWalkSegment={finalWalkSegment}
+        transitSegments={transitSegments}
+      />
+    </button>
+  );
+};
+type RouteHeaderProps = {
+  route: Route;
+  initialWalkSegment: WalkSegment | undefined;
+  transitSegments: TransitSegment[];
+  finalWalkSegment: WalkSegment | TransitSegment | undefined;
+};
+
+type VehicleLineProps = {
+  index: number;
+  transitLinesLength: number;
+  line: {
+    name: string;
+    svgPath: React.JSX.Element;
+  };
+};
+
+export const VehicleLine = ({
+  index,
+  transitLinesLength,
+  line,
+}: VehicleLineProps) => {
+  return (
+    <Fragment key={index}>
+      {transitLinesLength <= 3 && line.svgPath}
+      <div className={styles.line}>{line.name}</div>
+    </Fragment>
+  );
+};
+
+export const RouteHeader = ({
+  route,
+  initialWalkSegment,
+  transitSegments,
+  finalWalkSegment,
+}: RouteHeaderProps) => {
   const transitLines = transitSegments.map((segment) => ({
     name: segment.line,
     svgPath: getSvgPath(segment.lineType).element,
@@ -20,16 +77,8 @@ const RouteOption = ({ route }: { route: Route }) => {
   const firstTransit = transitSegments[0];
   const lastTransit = transitSegments[transitSegments.length - 1];
   const transitDuration = lastTransit?.arrival - firstTransit?.departure || 0;
-
   return (
-    <button
-      onMouseEnter={() => setHovered(route.key)}
-      onFocus={() => setHovered(route.key)}
-      onClick={() => setMenu("CHOSEN_ROUTE")}
-      className={styles.container}
-      aria-label={`Route departing at ${route.departure}, ${route.duration} minutes total`}
-      type="button"
-    >
+    <div className={styles.container}>
       <div className={styles.left}>
         <div>Odjazd</div>
         <div className={styles.departureTime}>{route.departure}</div>
@@ -37,10 +86,11 @@ const RouteOption = ({ route }: { route: Route }) => {
       <div className={styles.middle}>
         <div className={styles.lineContainer}>
           {transitLines.slice(0, 5).map((line, index) => (
-            <Fragment key={index}>
-              {transitLines.length <= 3 && line.svgPath}
-              <div className={styles.line}>{line.name}</div>
-            </Fragment>
+            <VehicleLine
+              transitLinesLength={transitLines.length}
+              line={line}
+              index={index}
+            />
           ))}
         </div>
         <div className={styles.timeInfo}>
@@ -72,8 +122,7 @@ const RouteOption = ({ route }: { route: Route }) => {
         </div>
       </div>
       <div className={styles.right}>{`${route.duration} min`}</div>
-    </button>
+    </div>
   );
 };
-
 export default RouteOption;

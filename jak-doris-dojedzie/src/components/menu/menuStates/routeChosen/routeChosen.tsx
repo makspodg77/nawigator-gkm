@@ -1,3 +1,4 @@
+import { VscArrowLeft, VscArrowRight } from "react-icons/vsc";
 import { useHoveredRoute } from "../../../../contexts/hoveredRouteContext";
 import { useMenu } from "../../../../contexts/menuContext";
 import {
@@ -6,6 +7,14 @@ import {
   type WalkSegment,
 } from "../../../../contexts/routeContext";
 import useRoute from "../../../../hooks/useRoute";
+import menuStyles from "../../menu.module.css";
+import styles from "./routeChosen.module.css";
+import { RouteHeader, VehicleLine } from "../../../routeOption/routeOption";
+import { useState } from "react";
+import { FaWalking } from "react-icons/fa";
+import { getSvgPath } from "../../../map/mapRoutePainter";
+import { LuChevronsUpDown } from "react-icons/lu";
+import clsx from "clsx";
 
 const RouteChosenMenuState = () => {
   const { setMenu } = useMenu();
@@ -23,66 +32,108 @@ const RouteChosenMenuState = () => {
 
   return (
     <>
-      <button onClick={() => setMenu("FOUND_ROUTES")}>back</button>
-      <h2>{route.departure}</h2>
-      <h3>
-        {route.segments.map((segment) =>
-          segment.type === "transit" ? segment.line + " " : "",
-        )}
-        {"    "}
-        {route.duration + " min "}
-      </h3>
-      <h4>
-        {initialWalkSegment ? initialWalkSegment.duration + "min " : ""}
-        {transitSegments[0].formattedDeparture}{" "}
-        {transitSegments[transitSegments.length - 1].arrival -
-          transitSegments[0].departure +
-          " min "}
-        {transitSegments[transitSegments.length - 1].formattedArrival + " "}
-        {finalWalkSegment ? finalWalkSegment.duration + "min " : ""}
-      </h4>
-      {route.segments.map((segment) => {
-        if (segment.type === "transit")
-          return <TransitSegmentComponent segment={segment} />;
+      <div className={menuStyles.topPanel}>
+        <div className={menuStyles.header}>
+          <button onClick={() => setMenu("INITIAL")}>
+            <VscArrowLeft />
+          </button>
+        </div>
+      </div>
+      <div className={styles.header}>
+        <RouteHeader
+          transitSegments={transitSegments}
+          finalWalkSegment={finalWalkSegment}
+          initialWalkSegment={initialWalkSegment}
+          route={route}
+        />
+      </div>
+      <div className={styles.container}>
+        {route.segments.map((segment) => {
+          if (segment.type === "transit")
+            return <TransitSegmentComponent segment={segment} />;
 
-        if (segment.type === "walk" && segment.duration > 2)
-          return <WalkSegmentComponent segment={segment} />;
-        return null;
-      })}
+          if (segment.type === "walk" && segment.duration > 2)
+            return <WalkSegmentComponent segment={segment} />;
+          return null;
+        })}
+      </div>
     </>
   );
 };
 
 const WalkSegmentComponent = ({ segment }: { segment: WalkSegment }) => {
   return (
-    <div>
-      {segment.duration} min {segment.distance} m
+    <div className={styles.segment}>
+      <div className={styles.leftCellWalk}>
+        <FaWalking size={20} />
+      </div>
+      <div className={styles.rightCellWalk}>
+        <div>{segment.duration} min</div> <div>{segment.distance} m</div>
+      </div>
     </div>
   );
 };
-
 const TransitSegmentComponent = ({ segment }: { segment: TransitSegment }) => {
+  const [showStops, setShowStops] = useState(false);
+  const line = getSvgPath(segment.lineType);
   return (
-    <>
-      <div>
-        {segment.formattedDeparture}
-        {"  "} {segment.fromName}
+    <div className={styles.transitSegment}>
+      <div className={styles.leftCell}>{segment.formattedDeparture}</div>
+      <div className={clsx(styles.rightCell, styles.milestoneText)}>
+        {segment.fromName}
       </div>
-      <div>
-        {segment.line} {"->"} {segment.directionName} {segment.duration} m
+      <div className={styles.leftCell}>
+        <div className={styles.lineIconContainer}>
+          <VehicleLine
+            line={{ name: segment.line, svgPath: line.element }}
+            transitLinesLength={1}
+            index={1}
+          />
+        </div>
       </div>
-      <div>{segment.stopsBetween.length + 1} stops</div>
-      <div>
-        {segment.stopsBetween.map((sb) => (
+      <div className={clsx(styles.rightCellWalk, styles.milestoneText)}>
+        <div>
+          <VscArrowRight /> {segment.directionName}
+        </div>
+        <div>{segment.duration} m</div>
+      </div>
+      <div className={styles.leftCell}>
+        <div className={styles.connector}></div>
+      </div>
+      <div
+        className={styles.rightCell}
+        onClick={() => setShowStops((prev) => !prev)}
+      >
+        <div className={styles.rightCellWalk}>
+          <div>{segment.stopsBetween.length + 1} stops</div>
           <div>
-            {sb.name} {sb.departureTimeFormatted}
+            <LuChevronsUpDown />
           </div>
+        </div>
+      </div>
+      {showStops &&
+        segment.stopsBetween.map((sb, index) => (
+          <>
+            <div key={`time-${index}`} className={styles.leftCell}>
+              <div className={styles.bStopTime}>
+                {sb.departureTimeFormatted}
+              </div>
+              <div className={styles.connector}></div>
+            </div>
+            <div key={`name-${index}`} className={styles.rightCell}>
+              {index + 1}. {sb.name}
+            </div>
+          </>
         ))}
+      <div className={styles.leftCell}>
+        <div className={styles.connector}></div>
       </div>
-      <div>
-        {segment.formattedArrival} {segment.toName}
+      <div className={styles.rightCellWalk}></div>
+      <div className={styles.leftCell}>{segment.formattedArrival}</div>
+      <div className={clsx(styles.rightCell, styles.milestoneText)}>
+        {segment.toName}
       </div>
-    </>
+    </div>
   );
 };
 
