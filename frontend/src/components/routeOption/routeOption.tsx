@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, type ReactElement } from "react";
 import { useHoveredRoute } from "../../contexts/hoveredRouteContext";
 import { useMenu } from "../../contexts/menuContext";
 import type {
@@ -43,21 +43,16 @@ type RouteHeaderProps = {
 };
 
 type VehicleLineProps = {
-  index: number;
   transitLinesLength: number;
   line: {
     name: string;
-    svgPath: React.JSX.Element;
+    svgPath: ReactElement;
   };
 };
 
-export const VehicleLine = ({
-  index,
-  transitLinesLength,
-  line,
-}: VehicleLineProps) => {
+export const VehicleLine = ({ transitLinesLength, line }: VehicleLineProps) => {
   return (
-    <Fragment key={index}>
+    <Fragment>
       {transitLinesLength <= 3 && line.svgPath}
       <div className={styles.line}>{line.name}</div>
     </Fragment>
@@ -89,7 +84,7 @@ export const RouteHeader = ({
             <VehicleLine
               transitLinesLength={transitLines.length}
               line={line}
-              index={index}
+              key={index}
             />
           ))}
         </div>
@@ -100,17 +95,11 @@ export const RouteHeader = ({
               {initialWalkSegment.duration} min
             </>
           ) : null}
-          <div
-            className={styles.milestoneTime}
-            style={{ backgroundColor: "#0a9f6b" }}
-          >
+          <div className={styles.milestoneTime} data-type={"origin"}>
             {firstTransit.formattedDeparture}
           </div>
           {`${transitDuration} min`}
-          <div
-            className={styles.milestoneTime}
-            style={{ backgroundColor: "#00acf1" }}
-          >
+          <div className={styles.milestoneTime} data-type={"destination"}>
             {lastTransit.formattedArrival}
           </div>
           {finalWalkSegment ? (

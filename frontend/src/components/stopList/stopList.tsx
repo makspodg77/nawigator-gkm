@@ -4,14 +4,16 @@ import type { LocationSource } from "../../contexts/tripContext";
 import styles from "./stopList.module.css";
 import { GiBusStop } from "react-icons/gi";
 
-const StopList = ({
-  value,
-  onClick,
-}: {
+interface StopListProps {
   value: string;
   onClick: (coords: Coordinates, source: LocationSource) => void;
-}) => {
+}
+
+const StopList = ({ value, onClick }: StopListProps) => {
   const stops = useSearch(value);
+
+  const formatLines = (lines: string[]) =>
+    lines.length > 4 ? lines.slice(0, 4).join(", ") + "…" : lines.join(", ");
 
   return (
     <div className={styles.container} onMouseDown={(e) => e.preventDefault()}>
@@ -26,16 +28,13 @@ const StopList = ({
             )
           }
         >
-          <div className={styles.icon}>
-            <GiBusStop />
+          <div className={styles.iconContainer}>
+            <GiBusStop className={styles.icon} />
           </div>
           <div>
             <div className={styles.name}>{s.name}</div>
             <div className={styles.info}>
-              przystanek, linie:{" "}
-              {s.lines.length > 4
-                ? s.lines.slice(0, 4).join(", ") + "..."
-                : s.lines.join(", ")}
+              przystanek, linie: {formatLines(s.lines)}
             </div>
           </div>
         </div>

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import "./App.css";
 import { StopsProvider, type StopGroup } from "./contexts/stopContext";
 import { TimeProvider } from "./contexts/timeContext";
 import { TripProvider } from "./contexts/tripContext";
@@ -35,7 +34,11 @@ function App() {
         const stopsResponse = await fetch("http://localhost:2137/stops");
         const data = await stopsResponse.json();
 
-        setStops(data);
+        setStops(
+          data.sort(
+            (a: StopGroup, b: StopGroup) => b.lines.length - a.lines.length,
+          ),
+        );
       } catch (error) {
         console.error("Failed to initialize:", error);
       }

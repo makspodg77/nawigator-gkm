@@ -1,21 +1,22 @@
-import { forwardRef, type Dispatch, type SetStateAction } from "react";
-import type { MenuState } from "../../contexts/menuContext";
+import { forwardRef } from "react";
+import { useMenu } from "../../contexts/menuContext";
 import styles from "./searchbar.module.css";
 import { VscChromeClose, VscArrowSwap } from "react-icons/vsc";
+import MilestoneCircle from "../milestoneCircle/milestoneCircle";
 
-type SearchbarProps = {
+type SearchbarBaseProps = {
   value: string;
-  setValue: Dispatch<SetStateAction<string>>;
-  setIsFocused: Dispatch<SetStateAction<boolean>>;
+  setValue: (value: string) => void;
+  setIsFocused: (isFocused: boolean) => void;
   placeholder: string;
   reset: () => void;
-  setMenu: (n: MenuState) => void;
-  color: string;
   isFocused: boolean;
-  canSwap?: boolean;
-  swap?: () => void;
+  type: "origin" | "destination";
   position?: "start" | "end";
 };
+
+type SearchbarProps = SearchbarBaseProps &
+  ({ canSwap: true; swap: () => void } | { canSwap?: false; swap?: never });
 
 const Searchbar = forwardRef<HTMLInputElement, SearchbarProps>(
   (
@@ -25,15 +26,15 @@ const Searchbar = forwardRef<HTMLInputElement, SearchbarProps>(
       setIsFocused,
       placeholder,
       reset,
-      setMenu,
-      color,
       isFocused,
       canSwap = false,
       swap,
       position,
+      type,
     },
     ref,
   ) => {
+    const { setMenu } = useMenu();
     const handleChange = (e?: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e?.target.value ?? "";
       setValue(newValue);
@@ -47,18 +48,15 @@ const Searchbar = forwardRef<HTMLInputElement, SearchbarProps>(
     return (
       <div className={styles.container}>
         <div className={styles.point}>
-          <div
-            className={styles.outerCircle}
-            style={{ backgroundColor: color }}
-          >
+          <MilestoneCircle type={type} size="md" innerColor="white">
             {position && (
               <div className={styles.connector} data-position={position} />
             )}
-            <div className={styles.innerCircle} />
-          </div>
+          </MilestoneCircle>
         </div>
 
         <input
+          className={styles.input}
           ref={ref}
           value={value}
           type="text"

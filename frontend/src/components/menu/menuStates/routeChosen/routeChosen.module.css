@@ -56,6 +56,12 @@
   height: 50px;
   border-right: 1px solid rgb(239, 239, 239);
 }
+
+.topBorder {
+  border-top: 1px solid rgb(239, 239, 239);
+  border-bottom: 1px solid rgb(239, 239, 239);
+}
+
 .rightCellWalk {
   display: flex;
   justify-content: space-between;

@@ -1,29 +1,27 @@
-.stop {
-  width: 100%;
-  padding: 6px 12px;
-  box-sizing: border-box;
-  display: flex;
-  cursor: pointer;
-  justify-content: start;
-  background-color: white;
-  gap: 10px;
-  .icon {
-    width: 10%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    > * {
-      width: 25px;
-      height: 25px;
-    }
-  }
-  .info {
-    font-size: smaller;
-  }
-}
-
 .container {
-  width: 100%;
   flex: 1;
   overflow-y: auto;
+}
+
+.stop {
+  padding: var(--spacing-s) var(--spacing-m);
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.iconContainer {
+  width: 10%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.icon {
+  width: 25px;
+  height: 25px;
+}
+
+.info {
+  font-size: smaller;
 }

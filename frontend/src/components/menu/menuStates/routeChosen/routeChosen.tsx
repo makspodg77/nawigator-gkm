@@ -86,10 +86,10 @@ const WalkSegmentComponent = ({
           />
         ) : null}
 
-        <div className={styles.leftCellWalk}>
+        <div className={clsx(styles.leftCellWalk, styles.topBorder)}>
           <FaWalking size={20} />
         </div>
-        <div className={styles.rightCellWalk}>
+        <div className={clsx(styles.rightCellWalk, styles.topBorder)}>
           <div>{segment.duration} min</div> <div>{segment.distance} m</div>
         </div>
 
@@ -117,7 +117,6 @@ const TransitSegmentComponent = ({ segment }: { segment: TransitSegment }) => {
           <VehicleLine
             line={{ name: segment.line, svgPath: line.element }}
             transitLinesLength={1}
-            index={1}
           />
         </div>
       </div>

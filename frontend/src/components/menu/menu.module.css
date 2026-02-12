@@ -2,7 +2,7 @@
   width: min(400px, 95vw);
   height: 60vh;
   border-radius: 12px;
-  background-color: #f7f6f6;
+  background-color: var(--primary-bg-color);
   position: absolute;
   top: 2%;
   left: 1%;
