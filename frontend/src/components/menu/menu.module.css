@@ -1,11 +1,11 @@
 .menu {
   width: min(400px, 95vw);
   height: 60vh;
-  border-radius: 12px;
+  border-radius: var(--border-radius-m);
   background-color: var(--primary-bg-color);
   position: absolute;
-  top: 2%;
-  left: 1%;
+  top: 20px;
+  left: 20px;
   z-index: 3;
   overflow-y: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
@@ -15,31 +15,22 @@
 
 .topPanel {
   background-color: #056b89;
-  width: 100%;
   padding: 10px;
-  box-sizing: border-box;
+}
 
-  .header {
-    color: white;
-    height: 30px;
-    font-weight: 600;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+.header {
+  color: white;
+  height: 30px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
 
-    > * {
-      color: white;
-      background-color: transparent;
-      outline: transparent;
-      border: transparent;
-      cursor: pointer;
-
-      > * {
-        width: 20px;
-        height: 20px;
-      }
-    }
-  }
+.button {
+  color: white;
+  width: 20px;
+  height: 20px;
 }
 
 .divider {
@@ -52,14 +43,13 @@
   font-size: large;
   color: white;
   background-color: #0a9f6b;
-  border: transparent;
   display: flex;
+  gap: var(--spacing-m);
   margin: auto;
-  margin-top: 12px;
+  margin-top: var(--spacing-m);
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  border-radius: 12px;
+  border-radius: var(--border-radius-m);
 }
 
 .searchButton:hover {

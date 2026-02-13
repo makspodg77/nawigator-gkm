@@ -1,0 +1,14 @@
+.image {
+  position: relative;
+}
+
+.text {
+  position: absolute;
+  color: red;
+  font-weight: 900;
+  font-size: 3rem;
+  text-align: center;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

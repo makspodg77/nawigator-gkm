@@ -10,24 +10,6 @@
   align-items: center;
 }
 
-.outerCircle {
-  width: 14px;
-  border-radius: 50%;
-  height: 14px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-}
-
-.innerCircle {
-  width: 6px;
-  background-color: #056b89;
-  border-radius: 50%;
-  height: 6px;
-  display: block;
-}
-
 .headerRow {
   width: 100%;
   display: flex;
@@ -41,6 +23,16 @@
   gap: 6px;
   overflow-y: auto;
   flex-direction: column;
+}
+
+.routeList {
+  list-style: none;
+  padding: 0;
+}
+
+.routeItem {
+  display: block;
+  margin: var(--spacing-s) 0;
 }
 
 .searchButton {
@@ -58,6 +50,7 @@
   position: absolute;
   top: 14px;
 }
+
 .loader {
   width: 24px;
   height: 24px;
@@ -72,7 +65,7 @@
 .loaderContainer {
   width: 100%;
   display: flex;
-  margin: 12px 0;
+  margin: var(--spacing-m) 0;
   justify-content: center;
 }
 

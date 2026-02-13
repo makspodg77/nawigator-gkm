@@ -3,14 +3,17 @@
   background-color: white;
   box-shadow: rgba(149, 157, 165, 0.2) 0px 2px 12px;
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
 }
 
 .container {
   height: 90px;
+  width: 100%;
   padding: var(--spacing-s) var(--spacing-m);
   display: flex;
   gap: 1%;
   align-items: center;
+  position: relative;
 }
 
 .button:hover {
@@ -18,9 +21,7 @@
 }
 
 .left,
-.middle,
-.right {
-  height: 70%;
+.middle {
   white-space: nowrap;
   text-align: left;
 }
@@ -34,13 +35,15 @@
 }
 
 .middle {
-  min-width: 0;
+  width: 80%;
+  position: relative;
 }
 
-.right {
-  width: 15%;
+.travelTime {
+  position: absolute;
+  right: 0;
+  top: 0;
   font-size: small;
-  text-align: right;
   color: #515151;
 }
 
@@ -59,7 +62,7 @@
 }
 
 .line {
-  padding: var(--spacing-s);
+  padding: 3px;
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--border-radius-s);
   font-weight: 600;
@@ -69,13 +72,14 @@
   display: flex;
   align-items: last baseline;
   height: 50%;
+  font-size: small;
   gap: var(--spacing-s);
   flex-wrap: nowrap;
 }
 
 .milestoneTime {
   color: white;
-  padding: 3px;
+  padding: 0 3px;
   border-radius: var(--border-radius-s);
 }
 

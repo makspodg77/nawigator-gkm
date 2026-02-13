@@ -82,7 +82,7 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
   const prevStartTime = useRef(startTime);
 
   const fetchRoutes = useCallback(
-    async (append?: boolean) => {
+    async () => {
       if (!start || !end) {
         console.warn("Cannot fetch routes: Start or End is missing");
         return;
@@ -132,23 +132,19 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        if (append) {
-          setRoutes((prevRoutes) => {
-            if (!prevRoutes) return data;
+        setRoutes((prevRoutes) => {
+          if (!prevRoutes) return data;
 
-            const existingKeys = new Set(prevRoutes.map((r) => r.key));
+          const existingKeys = new Set(prevRoutes.map((r) => r.key));
 
-            const newRoutes = data.filter(
-              (route) => !existingKeys.has(route.key),
-            );
+          const newRoutes = data.filter(
+            (route) => !existingKeys.has(route.key),
+          );
 
-            return [...prevRoutes, ...newRoutes].sort(
-              (a, b) => a.departureMinutes - b.departureMinutes,
-            );
-          });
-        } else {
-          setRoutes(data);
-        }
+          return [...prevRoutes, ...newRoutes].sort(
+            (a, b) => a.departureMinutes - b.departureMinutes,
+          );
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
         setRoutes(null);

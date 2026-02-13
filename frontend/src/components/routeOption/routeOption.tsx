@@ -109,8 +109,8 @@ export const RouteHeader = ({
             </>
           ) : null}
         </div>
+        <div className={styles.travelTime}>{`${route.duration} min`}</div>
       </div>
-      <div className={styles.right}>{`${route.duration} min`}</div>
     </div>
   );
 };

@@ -14,7 +14,7 @@ const Header = ({ showBackButton }: { showBackButton: boolean }) => {
     <div className={menuStyles.header}>
       {showBackButton ? (
         <button onClick={handleBack}>
-          <VscArrowLeft />
+          <VscArrowLeft className={menuStyles.button} />
         </button>
       ) : (
         <div />

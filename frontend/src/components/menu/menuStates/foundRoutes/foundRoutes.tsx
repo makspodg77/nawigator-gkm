@@ -1,25 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRoutes } from "../../../../contexts/routeContext";
-import { useTrip, type LocationSource } from "../../../../contexts/tripContext";
-import { getDisplayValue } from "../initial/initial";
-import RouteOption from "../../../routeOption/routeOption";
 import { useMenu } from "../../../../contexts/menuContext";
 import { useTime } from "../../../../contexts/timeContext";
-import menuStyles from "../../menu.module.css";
+import RouteOption from "../../../routeOption/routeOption";
+import TopPanel from "./topPanel";
+import SearchOtherTime from "./searchOtherTime";
 import styles from "./foundRoutes.module.css";
-import clsx from "clsx";
-import { VscArrowLeft } from "react-icons/vsc";
+
+type LoadingDirection = "before" | "after" | null;
 
 const FoundRoutesMenuState = () => {
   const { fetchRoutes, routes, isLoading, error } = useRoutes();
   const { setMenu } = useMenu();
   const { getNewLowerBound, getNewUpperBound, startTime, endTime } = useTime();
-  const [loadingDirection, setLoadingDirection] = useState<
-    "before" | "after" | null
-  >(null);
+  const [loadingDirection, setLoadingDirection] =
+    useState<LoadingDirection>(null);
 
   useEffect(() => {
-    fetchRoutes(true);
+    fetchRoutes();
   }, [startTime, endTime, fetchRoutes]);
 
   useEffect(() => {
@@ -35,117 +33,69 @@ const FoundRoutesMenuState = () => {
     }
   }, [isLoading]);
 
-  const showFullLoading = isLoading && (!routes || routes.length === 0);
+  const handleSearchBefore = useCallback(() => {
+    setLoadingDirection("before");
+    getNewLowerBound();
+  }, [getNewLowerBound]);
 
-  if (showFullLoading)
+  const handleSearchAfter = useCallback(() => {
+    setLoadingDirection("after");
+    getNewUpperBound();
+  }, [getNewUpperBound]);
+
+  const showFullLoading = isLoading && (!routes || routes.length === 0);
+  const hasRoutes = routes && routes.length > 0;
+
+  if (showFullLoading) {
     return (
       <>
         <TopPanel />
         <div className={styles.loaderContainer}>
-          <div className={styles.loader}></div>
+          <div
+            className={styles.loader}
+            role="status"
+            aria-label="Ładowanie tras"
+          />
         </div>
       </>
     );
-
-  const handleSearchBefore = () => {
-    setLoadingDirection("before");
-    getNewLowerBound();
-  };
-
-  const handleSearchAfter = () => {
-    setLoadingDirection("after");
-    getNewUpperBound();
-  };
+  }
 
   return (
     <>
       <TopPanel />
       <div className={styles.container}>
-        {searchOtherTime(
-          startTime !== 0,
-          handleSearchBefore,
-          "Szukaj przed..",
-          isLoading && loadingDirection === "before",
-        )}
+        <SearchOtherTime
+          condition={startTime !== 0}
+          onClick={handleSearchBefore}
+          text="Szukaj wcześniej"
+          isLoading={isLoading && loadingDirection === "before"}
+        />
 
-        {routes && routes.length > 0 ? (
-          routes.map((route) => <RouteOption key={route.key} route={route} />)
+        {hasRoutes ? (
+          <ul
+            className={styles.routeList}
+            role="list"
+            aria-label="Znalezione trasy"
+          >
+            {routes.map((route) => (
+              <li key={route.key} className={styles.routeItem}>
+                <RouteOption route={route} />
+              </li>
+            ))}
+          </ul>
         ) : (
-          <p>Nie znaleźliśmy żadnego połączenia</p>
+          <div role="status">Nie znaleźliśmy żadnego połączenia</div>
         )}
 
-        {searchOtherTime(
-          endTime !== 1440,
-          handleSearchAfter,
-          "Szukaj po..",
-          isLoading && loadingDirection === "after",
-        )}
+        <SearchOtherTime
+          condition={endTime !== 1440}
+          onClick={handleSearchAfter}
+          text="Szukaj później"
+          isLoading={isLoading && loadingDirection === "after"}
+        />
       </div>
     </>
-  );
-};
-
-const searchOtherTime = (
-  condition: boolean,
-  onClick: () => void,
-  text: string,
-  isLoading: boolean,
-) => {
-  if (isLoading) {
-    return (
-      <div className={styles.loaderContainer}>
-        <div className={styles.loader}></div>
-      </div>
-    );
-  }
-
-  if (condition) {
-    return (
-      <button className={styles.searchButton} onClick={onClick}>
-        {text}
-      </button>
-    );
-  }
-
-  return null;
-};
-
-const TopPanel = () => {
-  const { setMenu } = useMenu();
-  const { startSource, endSource } = useTrip();
-
-  return (
-    <div className={clsx(menuStyles.topPanel, styles.topPanel)}>
-      <div className={menuStyles.header}>
-        <button onClick={() => setMenu("INITIAL")}>
-          <VscArrowLeft />
-        </button>
-      </div>
-      <HeaderRow color="#0a9f6b" source={startSource} connector={true} />
-      <HeaderRow color="#00acf1" source={endSource} connector={false} />
-    </div>
-  );
-};
-
-const HeaderRow = ({
-  color,
-  source,
-  connector,
-}: {
-  color: string;
-  source: LocationSource;
-  connector: boolean;
-}) => {
-  return (
-    <div className={styles.headerRow}>
-      <div className={styles.point}>
-        <div className={styles.outerCircle} style={{ backgroundColor: color }}>
-          {connector ? <div className={styles.connector} /> : null}
-          <div className={styles.innerCircle} />
-        </div>
-      </div>
-      <div>{getDisplayValue(source)}</div>
-    </div>
   );
 };
 
