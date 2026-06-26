@@ -14,7 +14,7 @@ const HeaderRow = ({
   return (
     <div className={styles.headerRow}>
       <div className={styles.point}>
-        <MilestoneCircle type={type} size={"md"}>
+        <MilestoneCircle type={type} size={"md"} innerColor="#056b89">
           {connector ? <div className={styles.connector} /> : null}
         </MilestoneCircle>
       </div>

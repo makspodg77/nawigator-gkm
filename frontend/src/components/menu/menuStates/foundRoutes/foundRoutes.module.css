@@ -20,7 +20,6 @@
 .container {
   padding: 12px;
   display: flex;
-  gap: 6px;
   overflow-y: auto;
   flex-direction: column;
 }
@@ -58,14 +57,13 @@
   border-bottom-color: #face01;
   border-radius: 50%;
   display: inline-block;
-  box-sizing: border-box;
   animation: rotation 1s linear infinite;
 }
 
 .loaderContainer {
   width: 100%;
   display: flex;
-  margin: var(--spacing-m) 0;
+  margin: var(--spacing-s) 0;
   justify-content: center;
 }
 

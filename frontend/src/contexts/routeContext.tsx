@@ -106,7 +106,7 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const response = await fetch("http://localhost:2137/csa-route", {
+        const response = await fetch("https://nawigator-gkm-production.up.railway.app/csa-route", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -1,13 +1,10 @@
-import { useEffect } from "react";
 import { useTrip, type LocationSource } from "../../../../contexts/tripContext";
 import StopList from "../../../stopList/stopList";
-import { useRoutes } from "../../../../contexts/routeContext";
 import { useMenu } from "../../../../contexts/menuContext";
 import menuStyles from "../../menu.module.css";
 import { VscArrowRight } from "react-icons/vsc";
 import SearchBarSection from "./searchbars";
 import { useSearchBarLogic } from "../../../../hooks/useSearchBarLogic";
-import { useTime } from "../../../../contexts/timeContext";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const getDisplayValue = (source: LocationSource) => {
@@ -26,19 +23,12 @@ const InitialMenuState = () => {
     setEnd,
   } = useTrip();
   const { setMenu } = useMenu();
-  const { resetRoutes } = useRoutes();
-  const { resetTime } = useTime();
 
   const searchLogic = useSearchBarLogic();
   const { isFromFocused, isToFocused, valueFrom, valueTo, tripReady } =
     searchLogic;
 
   const anyFocused = isFromFocused || isToFocused;
-
-  useEffect(() => {
-    resetRoutes();
-    resetTime();
-  }, [resetRoutes, resetTime]);
 
   const swapValues = () => {
     if (!end || !start) return;

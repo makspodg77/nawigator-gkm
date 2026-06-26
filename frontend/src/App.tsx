@@ -23,7 +23,7 @@ function App() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        const initResponse = await fetch("http://localhost:2137/initialize", {
+        const initResponse = await fetch("https://nawigator-gkm-production.up.railway.app/initialize", {
           method: "POST",
         });
 
@@ -31,7 +31,7 @@ function App() {
           throw new Error("Initialization failed");
         }
 
-        const stopsResponse = await fetch("http://localhost:2137/stops");
+        const stopsResponse = await fetch("https://nawigator-gkm-production.up.railway.app/stops");
         const data = await stopsResponse.json();
 
         setStops(

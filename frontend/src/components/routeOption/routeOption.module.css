@@ -11,7 +11,7 @@
   width: 100%;
   padding: var(--spacing-s) var(--spacing-m);
   display: flex;
-  gap: 1%;
+  gap: 2%;
   align-items: center;
   position: relative;
 }
@@ -24,6 +24,7 @@
 .middle {
   white-space: nowrap;
   text-align: left;
+  height: 85%;
 }
 
 .left {
