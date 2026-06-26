@@ -7,7 +7,7 @@ const LoadingMenuState = () => {
     "Szukanie tras opiera się na\u00A0algorytmie Connection Scan Algorithm (SCA).",
     "Dorzucamy węgla do\u00A0pieca...",
     "Nakręcamy korbę...",
-    "Zapraszamy również na\u00A0stronę www.komunikacjagoleniow.pl – ewentualnie – www.goleniowkm.pl.",
+    "Zapraszamy również na\u00A0stronę www.goleniowkm.pl.",
     "Ładowanie...",
     "Gdzie jedziesz?",
     "Ekosystem rozwijamy już od\u00A0dwóch lat!",
